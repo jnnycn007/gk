@@ -156,8 +156,15 @@ static int check_mounted()
         return 0;
 }
 
-int gk_ext4_open(const char *pathname, int flags, int mode, int fd, int *_errno)
+static int gk_ext4_open_int(const char *pathname, int flags, int mode, int fd, int nlinks, int *_errno)
 {
+    if(nlinks > 4)
+    {
+        klog("open: too many symlinks followed: %s\n", pathname);
+        *_errno = EMLINK;
+        return -1;
+    }
+
     MutexGuard mg(m_ext4);
     if(check_mounted() != 0)
     {
@@ -172,9 +179,9 @@ int gk_ext4_open(const char *pathname, int flags, int mode, int fd, int *_errno)
     auto p = GetCurrentProcessForCore();
 
     // convert newlib flags to lwext4 flags
-    bool is_opendir = (mode == S_IFDIR) && (flags == O_RDONLY);
+    bool is_opendir = (mode == S_IFDIR) && ((flags & O_ACCMODE) == O_RDONLY);
 
-    auto extret = ext4_fopen2(&f, pathname, flags);
+    auto extret = ext4_fopen2(&f, pathname, flags & ~O_NOFOLLOW);
     {
         if(extret == EOK)
         {
@@ -184,9 +191,46 @@ int gk_ext4_open(const char *pathname, int flags, int mode, int fd, int *_errno)
             {
                 p->open_files.f[fd] = nullptr;
 
+#if EXT4_DEBUG
+            klog("ext4: opendir(%s) - %s is not a dir\n", pathname);
+#endif
+
                 *_errno = ENOTDIR;
                 return -1;
             }
+
+            if(f.imode == EXT4_INODE_MODE_SOFTLINK && !(flags & O_NOFOLLOW))
+            {
+                // get and follow symlink
+                constexpr size_t starget_size = 1024;
+                auto symlink_target = new char[starget_size];
+                size_t nsymlink;
+                auto slink_err = ext4_fread(&f, symlink_target, starget_size, &nsymlink);
+                ext4_fclose(&f);
+
+                if(slink_err != EOK)
+                {
+                    klog("open: failed to read symlink from %s (%d)\n", pathname, slink_err);
+                    *_errno = EFAULT;
+                    return -1;
+                }
+                if(nsymlink >= starget_size)
+                {
+                    klog("open: symlink target too long\n");
+                    *_errno = E2BIG;
+                    return -1;
+                }
+                symlink_target[nsymlink] = 0;
+
+                // follow it
+                cg.unlock();
+                mg.unlock();
+                klog("open: symlink %s targets %s\n", pathname, symlink_target);
+                auto sret = gk_ext4_open_int(symlink_target, flags, mode, fd, nlinks + 1, _errno);
+                delete[] symlink_target;
+                return sret;
+            }
+
             auto lwfile = reinterpret_cast<LwextFile *>(
                 p->open_files.f[fd].get());
             lwfile->f = f;
@@ -232,6 +276,11 @@ int gk_ext4_open(const char *pathname, int flags, int mode, int fd, int *_errno)
             }
         }
     }
+}
+
+int gk_ext4_open(const char *pathname, int flags, int mode, int fd, int *_errno)
+{
+    return gk_ext4_open_int(pathname, flags, mode, fd, 0, _errno);
 }
 
 int gk_ext4_read(ext4_file &e4f, char *buf, int nbytes, int *_errno)
@@ -463,6 +512,27 @@ int gk_ext4_mkdir(const char *pathname, int mode, int *_errno)
     }
 }
 
+int gk_ext4_rmdir(const char *pathname, int *_errno)
+{
+    MutexGuard mg(m_ext4);
+    if(check_mounted() != 0)
+    {
+        *_errno = ENOSYS;
+        return -1;
+    }
+
+    auto extret = ext4_dir_rm(pathname);
+    if(extret == EOK)
+    {
+        return 0;
+    }
+    else
+    {
+        *_errno = extret;
+        return -1;
+    }
+}
+
 int gk_ext4_readdir(ext4_dir &e4d, struct dirent *de, int *_errno)
 {
     MutexGuard mg(m_ext4);
@@ -521,6 +591,27 @@ int gk_ext4_link(const char *oldname, const char *newname, int *_errno)
     }
 
     auto extret = ext4_flink(oldname, newname);
+    if(extret == EOK)
+    {
+        return 0;
+    }
+    else
+    {
+        *_errno = extret;
+        return -1;
+    }
+}
+
+int gk_ext4_symlink(const char *target, const char *path, int *_errno)
+{
+    MutexGuard mg(m_ext4);
+    if(check_mounted() != 0)
+    {
+        *_errno = ENOSYS;
+        return -1;
+    }
+
+    auto extret = ext4_fsymlink(target, path);
     if(extret == EOK)
     {
         return 0;

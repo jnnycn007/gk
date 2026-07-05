@@ -111,12 +111,14 @@ int syscall_gpuenqueue(const gpu_message *msgs, size_t nmsg, size_t *nsent, int 
 clock_t syscall_times(struct tms *buf, int *_errno);
 int syscall_kill(pid_t pid, int sig, int *_errno);
 int syscall_mkdir(const char *pathname, mode_t mode, int *_errno);
+int syscall_rmdir(const char *pathname, int *_errno);
 int syscall_opendir(const char *pathname, int *_errno);
 int syscall_readdir(int dirfd, dirent *de, int *_errno);
 int syscall_closedir(int dirfd, int *_errno);
 int syscall_chdir(const char *path, int *_errno);
 int syscall_getcwd(char *path, size_t bufsize, int *_errno);
 int syscall_link(const char *oldpath, const char *newpath, int *_errno);
+int syscall_symlink(const char *target, const char *path, int *_errno);
 
 int syscall_getndl(int *_errno);
 int syscall_getdl(int dl_id, int *fd, char *name, size_t *namelen, void **img, void **baseaddr, int *_errno);

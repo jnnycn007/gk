@@ -477,6 +477,20 @@ int syscall_mkdir(const char *pathname, mode_t mode, int *_errno)
     return gk_ext4_mkdir(act_name.c_str(), mode, _errno);
 }
 
+int syscall_rmdir(const char *pathname, int *_errno)
+{
+    if(!pathname)
+    {
+        *_errno = EFAULT;
+        return -1;
+    }
+    ADDR_CHECK_BUFFER_R(pathname, 1);
+
+    auto act_name = parse_fname(pathname);
+
+    return gk_ext4_rmdir(act_name.c_str(), _errno);
+}
+
 int syscall_unlink(const char *pathname, int *_errno)
 {
     if(!pathname)
@@ -510,6 +524,27 @@ int syscall_link(const char *oldname, const char *newname, int *_errno)
     auto act_newname = parse_fname(newname);
 
     return gk_ext4_link(act_oldname.c_str(), act_newname.c_str(), _errno);
+}
+
+int syscall_symlink(const char *target, const char *path, int *_errno)
+{
+    if(!target)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
+    if(!path)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
+    ADDR_CHECK_BUFFER_R(target, 1);
+    ADDR_CHECK_BUFFER_W(path, 1);
+
+    auto act_target = parse_fname(target);
+    auto act_path = parse_fname(path);
+
+    return gk_ext4_symlink(act_target.c_str(), act_path.c_str(), _errno);
 }
 
 int syscall_chdir(const char *pathname, int *_errno)

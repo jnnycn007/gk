@@ -11,6 +11,7 @@
 #include "ostypes.h"
 
 int gk_ext4_mkdir(const char *pathname, int mode, int *_errno);
+int gk_ext4_rmdir(const char *pathname, int *_errno);
 int gk_ext4_open(const char *pathname, int flags, int mode, int f, int *_errno);
 int gk_ext4_read(ext4_file &e4f, char *buf, int nbytes, int *_errno);
 int gk_ext4_write(ext4_file &e4f, const char *buf, int nbytes, int *_errno);
@@ -22,6 +23,7 @@ int gk_ext4_readdir(ext4_dir &e4d, struct dirent *de, int *_errno);
 int gk_ext4_unlink(const char *pathname, int *_errno);
 int gk_ext4_unmount(int *_errno);
 int gk_ext4_link(const char *oldpath, const char *newpath, int *_errno);
+int gk_ext4_symlink(const char *target, const char *path, int *_errno);
 
 class LwextFile : public File
 {

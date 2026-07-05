@@ -511,6 +511,14 @@ void SyscallHandler(syscall_no sno, void *r1, void *r2, void *r3, uintptr_t lr, 
             }
             break;
 
+        case __syscall_symlink:
+            {
+                auto p = reinterpret_cast<struct __syscall_symlink_params *>(r2);
+                int ret = syscall_symlink(p->target, p->path, reinterpret_cast<int *>(r3));
+                *reinterpret_cast<int *>(r1) = ret;
+            }
+            break;
+
         case __syscall_isatty:
             {
                 ThreadDeletionPreventionGuard tdpg;
@@ -693,6 +701,14 @@ void SyscallHandler(syscall_no sno, void *r1, void *r2, void *r3, uintptr_t lr, 
                 ThreadDeletionPreventionGuard tdpg;
                 auto p = reinterpret_cast<__syscall_mkdir_params *>(r2);
                 int ret = syscall_mkdir(p->pathname, p->mode, reinterpret_cast<int *>(r3));
+                *reinterpret_cast<int *>(r1) = ret;
+            }
+            break;
+
+        case __syscall_rmdir:
+            {
+                auto p = reinterpret_cast<const char *>(r2);
+                int ret = syscall_rmdir(p, reinterpret_cast<int *>(r3));
                 *reinterpret_cast<int *>(r1) = ret;
             }
             break;
