@@ -101,6 +101,13 @@ int syscall_setscreenmode(int *width, int *height, int *pf, int *refresh, int *_
     p->screen.screen_refresh = new_refresh;
 
     klog("screen: set %ux%u, pf: %u, rr: %u\n", new_width, new_height, new_pf, new_refresh);
+    extern PProcess p_gksupervisor;
+    if(p_gksupervisor)
+    {
+        Event ev;
+        ev.type = Event::event_type_t::CaptionChange;
+        p_gksupervisor->events.Push(ev);
+    }
 
     return 0;
 }
