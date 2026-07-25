@@ -614,6 +614,11 @@ int syscall_setcursor(int fd, unsigned int w, unsigned int h, unsigned int hx, u
     {
         switch(fd)
         {
+            case -1:
+                // just set alpha
+                p->screen.cursor_alpha = alpha;
+                return 0;
+                
             case GK_FD_CURSOR_ARROW:
                 p->screen.cursor_file = f_cursor48;
                 p->screen.cursor_w = 48;
