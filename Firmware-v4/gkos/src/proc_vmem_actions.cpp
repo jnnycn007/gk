@@ -169,8 +169,9 @@ static int action_filefill(uintptr_t page_vaddr, uintptr_t page_paddr, MemBlock 
         mb.f->Lseek(old_offset, SEEK_SET, &cerrno);
         if(fret < 0)
         {
-            klog("filefill: read failed %d, fname: %s, block_offset: %p\n", fret,
-                mb.f->path.c_str(), (void *)block_offset);
+            klog("filefill: read failed %d, fname: %s, block_offset: %p, vaddr: %p, paddr: %p, f.type: %d\n", fret,
+                mb.f->path.c_str(), (void *)block_offset, (void *)page_vaddr,
+                (void *)page_paddr, (int)mb.f->GetType());
             return -1;
         }
         file_to_read = (uintptr_t)fret;
