@@ -141,6 +141,7 @@ extern "C" int mp_kmain(const gkos_boot_interface *_gbi, uint64_t magic)
         memcpy((void *)PMEM_TO_VMEM_NC(pmb_cursor48.base), (void *)&img_cursor48, 48*48*4);
 #pragma GCC diagnostic pop
         f_cursor48 = std::make_shared<DMABufFile>(pmb_cursor48, p_kernel);
+        f_cursor48->path = "/dev/mem/cursor48";
     }
 
     // Create some threads

@@ -1,8 +1,11 @@
 #include "process.h"
 #include "syscalls_int.h"
 #include "screen.h"
+#include "_gk_memaddrs.h"
 
 #define DEBUG_GPU 0
+
+extern PFile f_cursor48;
 
 int syscall_getscreenmodeex(int *width, int *height, int *pf, int *refresh, int *_errno)
 {
@@ -609,7 +612,24 @@ int syscall_setcursor(int fd, unsigned int w, unsigned int h, unsigned int hx, u
     CriticalGuard cg(p->screen.sl);
     if(fd < 0)
     {
-        p->screen.cursor_alpha = alpha;
+        switch(fd)
+        {
+            case GK_FD_CURSOR_ARROW:
+                p->screen.cursor_file = f_cursor48;
+                p->screen.cursor_w = 48;
+                p->screen.cursor_h = 48;
+                p->screen.cursor_stride = 48*4;
+                p->screen.cursor_pf = GK_PIXELFORMAT_ARGB8888;
+                p->screen.cursor_hx = 1;
+                p->screen.cursor_hy = 20;
+                p->screen.cursor_alpha = alpha;
+                return 0;
+
+            default:
+                klog("syscall_setcursor: unknown fd: %d\n", fd);
+                *_errno = EBADF;
+                return -1;
+        }
     }
 
     if(w > GK_SCREEN_WIDTH || h > GK_SCREEN_HEIGHT || pf >= GK_PIXELFORMAT_MAX)
