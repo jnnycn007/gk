@@ -755,5 +755,5 @@ int syscall_dmabuf_alloc(size_t len, int *_errno)
     CriticalGuard cg2(p->owned_pages.sl);
     p->owned_pages.add(pmb);
 
-    return 0;
+    return fd;
 }
