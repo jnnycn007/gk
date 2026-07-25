@@ -357,7 +357,11 @@ uint64_t TranslationFault_Handler(bool user, bool write, bool exec, uint64_t far
                     klog("pf: FillSubsequent not defined\n");
                     return user ? UserThreadFault() : SupervisorThreadFault();
                 }
-                uvblock.FillSubsequent(far & PAGE_VADDR_MASK, paddr, uvblock);
+                if(uvblock.FillSubsequent(far & PAGE_VADDR_MASK, paddr, uvblock) != 0)
+                {
+                    klog("pf: FillSubsequent failed\n");
+                    return user ? UserThreadFault() : SupervisorThreadFault();
+                }
             }
         }
         else
@@ -368,7 +372,11 @@ uint64_t TranslationFault_Handler(bool user, bool write, bool exec, uint64_t far
                 klog("pf: FillFirst not defined\n");
                 return user ? UserThreadFault() : SupervisorThreadFault();
             }
-            uvblock.FillFirst(far & PAGE_VADDR_MASK, paddr, uvblock);
+            if(uvblock.FillFirst(far & PAGE_VADDR_MASK, paddr, uvblock) != 0)
+            {
+                klog("pf: FillFirst failed\n");
+                return user ? UserThreadFault() : SupervisorThreadFault();
+            }
         }
 
         /* map as writeable if:
