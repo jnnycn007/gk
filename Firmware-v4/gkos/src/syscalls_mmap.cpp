@@ -49,6 +49,11 @@ int syscall_mmapv4(size_t len, void **retaddr, int is_sync,
             *_errno = EINVAL;
             return -1;
         }
+        if(!p->open_files.f[fd])
+        {
+            *_errno = EBADF;
+            return -1;
+        }
 
         if(p->open_files.f[fd]->GetType() == FileType::FT_DRI)
         {
@@ -166,6 +171,9 @@ int syscall_mmapv4(size_t len, void **retaddr, int is_sync,
 
         if(map_direct)
         {
+            klog("mmap: direct: %p paddr to %p vaddr, vb.size: %zu, pb.size: %zu\n",
+                (void *)map_direct_pmem.base, (void *)vb.base,
+                (size_t)vb.length, (size_t)map_direct_pmem.length);
             vmem_map(vb, map_direct_pmem, p->user_mem->ttbr0);
         }
         return 0;
