@@ -10,7 +10,7 @@ gkv4 represents a significant upgrade over the original gk with improved speed, 
 
 ## Overview ##
 
-gkv4 is a small, battery powered handheld gaming console running on a STM32MP2 MPU (dual Cortex-A35 cores with additional Cortex-M33 core).  It runs a custom OS called gkos which allows near-instantaneous (MCU-like) cold boot times but is powerful enough to run most POSIX userspace applications.  See <https://github.com/jncronin/gk-userland> for the userland support including cross GCC toolchains and useful libraries.
+gkv4 is a small, battery powered handheld gaming console running on a STM32MP2 MPU (dual Cortex-A35 cores with additional Cortex-M33 core).  It runs a custom OS called gkos which allows near-instantaneous (MCU-like) cold boot times but is powerful enough to run most POSIX userspace applications.  See <https://github.com/jncronin/gk-userland> for the userland support including cross GCC toolchains and useful libraries.  <https://github.com/gk-repo> contains all the userspace code including ports of various emulators, games and utilities.
 
 Game/emulator support:
 - Mednafen for NES, SNES, SMS, MD and Lynx support
