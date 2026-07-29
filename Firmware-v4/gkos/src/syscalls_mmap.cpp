@@ -171,9 +171,11 @@ int syscall_mmapv4(size_t len, void **retaddr, int is_sync,
 
         if(map_direct)
         {
+#if DEBUG_MMAP
             klog("mmap: direct: %p paddr to %p vaddr, vb.size: %zu, pb.size: %zu\n",
                 (void *)map_direct_pmem.base, (void *)vb.base,
                 (size_t)vb.length, (size_t)map_direct_pmem.length);
+#endif
             vmem_map(vb, map_direct_pmem, p->user_mem->ttbr0);
         }
         return 0;
