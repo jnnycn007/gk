@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "oled_lib") (type "KiCad") (uri "${KIPRJMOD}/oled_lib.pretty") (options "") (descr ""))
+)
