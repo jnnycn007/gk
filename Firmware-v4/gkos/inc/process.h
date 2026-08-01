@@ -167,6 +167,7 @@ class Process
                 int fd;
                 void *baseaddr;
                 void *img;
+                bool global;
             };
 
             std::vector<img> imgs;

@@ -1,5 +1,6 @@
 #include "syscalls_int.h"
 #include "process.h"
+#include "elf.h"
 
 int syscall_getndl(int *_errno)
 {
@@ -61,4 +62,15 @@ int syscall_getdl(int dl_id, int *fd, char *name, size_t *namelen, void **img, v
     strcpy(name, dl.path.c_str());
 
     return 0;
+}
+
+int syscall_loadimage(int fd, int global, int *_errno)
+{
+    auto eret = elf_load_fildes(fd, GetCurrentPProcessForCore(), nullptr, global != 0);
+    if(eret != 0)
+    {
+        *_errno = EINVAL;
+    }
+
+    return eret;
 }

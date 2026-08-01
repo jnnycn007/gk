@@ -131,6 +131,8 @@ int VBlockAllocator::Dealloc(MemBlock& region)
 
 VMemBlock MapVBlockAllocator::AllocAny(MemBlock region, bool lowest_first)
 {
+    MutexGuard cg(m);
+
     auto len = (uintptr_t)region.b.length;
     region.b.valid = true;
 

@@ -1103,14 +1103,22 @@ void SyscallHandler(syscall_no sno, void *r1, void *r2, void *r3, uintptr_t lr, 
             }
             break;
 
-        case __syscall_ioctl:
+        case __syscall_loadimage:
             {
-                ThreadDeletionPreventionGuard tdpg;
-                auto p = reinterpret_cast<__syscall_ioctl_params *>(r2);
-                *reinterpret_cast<int *>(r1) = syscall_ioctl(p->fd, p->nr, p->ptr, p->len,
+                auto p = reinterpret_cast<__syscall_loadimage_params *>(r2);
+                *reinterpret_cast<int *>(r1) = syscall_loadimage(p->fd, p->global,
                     reinterpret_cast<int *>(r3));
             }
             break;
+
+        case __syscall_ioctl:
+        {
+            ThreadDeletionPreventionGuard tdpg;
+            auto p = reinterpret_cast<__syscall_ioctl_params *>(r2);
+            *reinterpret_cast<int *>(r1) = syscall_ioctl(p->fd, p->nr, p->ptr, p->len,
+                reinterpret_cast<int *>(r3));
+        }
+        break;
 
         case __syscall_opengl_makerenderbuffer:
             {

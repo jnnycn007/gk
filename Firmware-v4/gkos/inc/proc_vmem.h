@@ -170,13 +170,13 @@ class MapVBlockAllocator : public VBlockAllocator
 {
     protected:
         std::map<uintptr_t, MemBlock> l;
-        Mutex m;
 
         std::tuple<bool, uintptr_t, uintptr_t> fits(uintptr_t len,
             MemBlock *prev,
             MemBlock *next);
 
     public:
+        Mutex m = Mutex(true);
         VMemBlock AllocFixed(MemBlock region);
         MemBlock &Split(uintptr_t address);
         VMemBlock AllocAny(MemBlock region, bool lowest_first = true);
