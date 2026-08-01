@@ -275,6 +275,7 @@ uint64_t TranslationFault_Handler(bool user, bool write, bool exec, uint64_t far
         if(write && !uvblock.b.write)
         {
             klog("pf: write access to RO page\n");
+            umem->Dump();
             return user ? UserThreadFault() : SupervisorThreadFault();
         }
 
@@ -282,6 +283,7 @@ uint64_t TranslationFault_Handler(bool user, bool write, bool exec, uint64_t far
         if(exec && !uvblock.b.exec)
         {
             klog("pf: exec access to NX page\n");
+            umem->Dump();
             return user ? UserThreadFault() : SupervisorThreadFault();
         }
 

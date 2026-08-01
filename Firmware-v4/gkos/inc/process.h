@@ -72,6 +72,7 @@ class Process
                 Mutex m = Mutex(true);
                 uintptr_t ttbr0;
                 MapVBlockAllocator vblocks;
+                void Dump();
         };
 
         class environ_t

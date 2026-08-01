@@ -563,3 +563,19 @@ id_t GetFocusPid()
     return focus_process;
 }
 
+void Process::userspace_mem_t::Dump()
+{
+    vblocks.Traverse([](MemBlock &mb)
+    {
+        klog("mmap: %p - %p, %sR%s%s%s %llx %llx\n",
+            (void *)mb.b.data_start(),
+            (void *)mb.b.data_end(),
+            mb.b.user ? "U" : " ",
+            mb.b.write ? "W" : " ",
+            mb.b.exec ? "X" : " ",
+            (mb.f == nullptr) ? "" : " FILE",
+            mb.foffset,
+            mb.flen);
+        return 0;
+    });
+}
