@@ -12,7 +12,7 @@
 
 int gk_ext4_mkdir(const char *pathname, int mode, int *_errno);
 int gk_ext4_rmdir(const char *pathname, int *_errno);
-int gk_ext4_open(const char *pathname, int flags, int mode, int f, int *_errno);
+int gk_ext4_open(const char *pathname, int flags, int mode, PFile *fd, int *_errno);
 int gk_ext4_read(ext4_file &e4f, char *buf, int nbytes, int *_errno);
 int gk_ext4_write(ext4_file &e4f, const char *buf, int nbytes, int *_errno);
 int gk_ext4_lseek(ext4_file &e4f, off_t offset, int whence, int *_errno);
@@ -42,12 +42,11 @@ class LwextFile : public File
 
         size_t Flen(int *_errno);
 
-        LwextFile(ext4_file fildes, std::string fname);
+        LwextFile();
         ext4_file f;
         ext4_dir d;
 
         bool is_dir = false;
-        std::string fname;
 };
 
 #endif

@@ -156,7 +156,7 @@ static int check_mounted()
         return 0;
 }
 
-static int gk_ext4_open_int(const char *pathname, int flags, int mode, int fd, int nlinks, int *_errno)
+static int gk_ext4_open_int(const char *pathname, int flags, int mode, PFile *fd, int nlinks, int *_errno)
 {
     if(nlinks > 4)
     {
@@ -176,8 +176,6 @@ static int gk_ext4_open_int(const char *pathname, int flags, int mode, int fd, i
     ext4_file f;
     ext4_dir d;
 
-    auto p = GetCurrentProcessForCore();
-
     // convert newlib flags to lwext4 flags
     bool is_opendir = (mode == S_IFDIR) && ((flags & O_ACCMODE) == O_RDONLY);
 
@@ -185,12 +183,8 @@ static int gk_ext4_open_int(const char *pathname, int flags, int mode, int fd, i
     {
         if(extret == EOK)
         {
-            CriticalGuard cg(p->open_files.sl);
-
             if(is_opendir)
             {
-                p->open_files.f[fd] = nullptr;
-
 #if EXT4_DEBUG
             klog("ext4: opendir(%s) - %s is not a dir\n", pathname);
 #endif
@@ -223,7 +217,6 @@ static int gk_ext4_open_int(const char *pathname, int flags, int mode, int fd, i
                 symlink_target[nsymlink] = 0;
 
                 // follow it
-                cg.unlock();
                 mg.unlock();
                 klog("open: symlink %s targets %s\n", pathname, symlink_target);
                 auto sret = gk_ext4_open_int(symlink_target, flags, mode, fd, nlinks + 1, _errno);
@@ -231,13 +224,13 @@ static int gk_ext4_open_int(const char *pathname, int flags, int mode, int fd, i
                 return sret;
             }
 
-            auto lwfile = reinterpret_cast<LwextFile *>(
-                p->open_files.f[fd].get());
+            auto lwfile = std::make_shared<LwextFile>();
             lwfile->f = f;
+            *fd = std::move(lwfile);    
 #if EXT4_DEBUG
             klog("ext4: opened %s\n", pathname);
 #endif
-            return fd;
+            return 0;
         }
         else
         {
@@ -247,18 +240,16 @@ static int gk_ext4_open_int(const char *pathname, int flags, int mode, int fd, i
                 extret = ext4_dir_open(&d, pathname);
             }
             {
-                CriticalGuard cg(p->open_files.sl);
-
                 if(extret == EOK)
                 {
-                    auto lwfile = reinterpret_cast<LwextFile *>(
-                        p->open_files.f[fd].get());
+                    auto lwfile = std::make_shared<LwextFile>();
                     lwfile->d = d;
                     lwfile->is_dir = true;
+                    *fd = std::move(lwfile);
 #if EXT4_DEBUG
                     klog("ext4: opened %s as directory\n", pathname);
 #endif
-                    return fd;
+                    return 0;
                 }
                 else
                 {
@@ -268,7 +259,6 @@ static int gk_ext4_open_int(const char *pathname, int flags, int mode, int fd, i
                             pathname, extret);
                     }
 #endif
-                    p->open_files.f[fd] = nullptr;
 
                     *_errno = extret;
                     return -1;
@@ -278,7 +268,7 @@ static int gk_ext4_open_int(const char *pathname, int flags, int mode, int fd, i
     }
 }
 
-int gk_ext4_open(const char *pathname, int flags, int mode, int fd, int *_errno)
+int gk_ext4_open(const char *pathname, int flags, int mode, PFile *fd, int *_errno)
 {
     return gk_ext4_open_int(pathname, flags, mode, fd, 0, _errno);
 }

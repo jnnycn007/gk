@@ -107,9 +107,9 @@ void *init_thread(void *)
 #endif
 
     // start gksupervisor
-    auto proc_fd = syscall_open("/gksupervisor-0.1.1-gk/bin/gksupervisor", O_RDONLY, 0, &errno);
+    auto proc_fd = OpenFile("/gksupervisor-0.1.1-gk/bin/gksupervisor", O_RDONLY, 0, &errno);
     //auto proc_fd = syscall_open("/glgears-0.1.1-gkv4/bin/glgears", O_RDONLY, 0, &errno);
-    if(proc_fd < 0)
+    if(proc_fd == nullptr)
     {
         klog("init: failed to open supervisor process, enabling rawsd for next reboot\n");
 
@@ -118,11 +118,11 @@ void *init_thread(void *)
         return nullptr;
     }
 
-    klog("init: opened gksupervisor process fd %d\n", proc_fd);
+    klog("init: opened gksupervisor process\n");
     p_gksupervisor = Process::Create("gksupervisor", false, GetCurrentPProcessForCore());
 
     Thread::threadstart_t test_ep;
-    auto ret = elf_load_fildes(proc_fd, p_gksupervisor, &test_ep);
+    auto ret = elf_load_fildes(proc_fd, *p_gksupervisor, &test_ep);
     klog("init: elf_load_fildes: ret: %d, ep: %llx\n", ret, test_ep);
 
     p_gksupervisor->env.cwd = "/gkmenu-0.1.1-gk";   // run in gkmenu dir so we can load osd files from there

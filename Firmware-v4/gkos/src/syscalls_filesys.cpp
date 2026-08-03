@@ -209,7 +209,7 @@ static void add_parts(std::vector<std::string> &output, const std::string &input
     add_part(output, input.substr(last));
 }
 
-static std::string parse_fname(const std::string &pname)
+std::string parse_fname(const std::string &pname)
 {
     std::vector<std::string> pnames;
 
@@ -244,22 +244,10 @@ static std::string parse_fname(const std::string &pname)
     return ss.str();
 }
 
-int syscall_open(const char *pathname, int flags, int mode, int *_errno)
+PFile OpenFile(const char *pathname, int flags, int mode, int *_errno)
 {
-    // try and get free process file handle
-    auto p = GetCurrentProcessForCore();
-    bool is_opendir = (mode == S_IFDIR) && (flags == O_RDONLY);
-
-    CriticalGuard cg(p->open_files.sl);
-    ADDR_CHECK_BUFFER_R(pathname, 1);
     auto act_name = parse_fname(pathname);
-
-    auto fd = p->open_files.get_free_fildes();
-    if(fd == -1)
-    {
-        *_errno = EMFILE;
-        return -1;
-    }
+    bool is_opendir = (mode == S_IFDIR) && (flags == O_RDONLY);
 
     // special case /dev files
     if(act_name == "/dev/stdin")
@@ -267,10 +255,10 @@ int syscall_open(const char *pathname, int flags, int mode, int *_errno)
         if(is_opendir)
         {
             *_errno = ENOTDIR;
-            return -1;
+            return nullptr;
         }
-        p->open_files.f[fd] = std::make_shared<UARTFile>(true, false);
-        p->open_files.f[fd]->path = act_name;
+        auto fd = std::make_shared<UARTFile>(true, false);
+        fd->path = act_name;
         return fd;
     }
     if(act_name == "/dev/stdout")
@@ -278,10 +266,10 @@ int syscall_open(const char *pathname, int flags, int mode, int *_errno)
         if(is_opendir)
         {
             *_errno = ENOTDIR;
-            return -1;
+            return nullptr;
         }
-        p->open_files.f[fd] = std::make_shared<UARTFile>(false, true);
-        p->open_files.f[fd]->path = act_name;
+        auto fd = std::make_shared<UARTFile>(false, true);
+        fd->path = act_name;
         return fd;
     }
     if(act_name == "/dev/stderr")
@@ -289,10 +277,10 @@ int syscall_open(const char *pathname, int flags, int mode, int *_errno)
         if(is_opendir)
         {
             *_errno = ENOTDIR;
-            return -1;
+            return nullptr;
         }
-        p->open_files.f[fd] = std::make_shared<UARTFile>(false, true);
-        p->open_files.f[fd]->path = act_name;
+        auto fd = std::make_shared<UARTFile>(false, true);
+        fd->path = act_name;
         return fd;
     }
     if(act_name.starts_with("/dev/ramdisk/"))
@@ -300,19 +288,20 @@ int syscall_open(const char *pathname, int flags, int mode, int *_errno)
         if(is_opendir)
         {
             *_errno = ENOTDIR;
-            return -1;
+            return nullptr;
         }
-        auto rdret = ramdisk_open(act_name.substr(13), &p->open_files.f[fd],
+        PFile fd;
+        auto rdret = ramdisk_open(act_name.substr(13), &fd,
             (flags & 3) != O_WRONLY, (flags & 3) != O_RDONLY);
         if(rdret == 0)
         {
-            p->open_files.f[fd]->path = act_name;
+            fd->path = act_name;
             return fd;
         }
         else
         {
             *_errno = ENOENT;
-            return rdret;
+            return nullptr;
         }
     }
     if(act_name.starts_with("/dev/fat/"))
@@ -320,88 +309,97 @@ int syscall_open(const char *pathname, int flags, int mode, int *_errno)
         if(is_opendir)
         {
             *_errno = ENOTDIR;
-            return -1;
+            return nullptr;
         }
-        auto ffret = fatfs_open(act_name.substr(9), &p->open_files.f[fd],
+        PFile fd;
+        auto ffret = fatfs_open(act_name.substr(9), &fd,
             (flags & 3) != O_WRONLY, (flags & 3) != O_RDONLY);
         if(ffret == 0)
         {
-            p->open_files.f[fd]->path = act_name;
+            fd->path = act_name;
             return fd;
         }
         else
         {
             *_errno = ENOENT;
-            return ffret;
+            return nullptr;
         }
     }
     if(act_name == "/dev/ttyUSB0")
     {
-        //BKPT_IF_DEBUGGER();
-#if 0
-        if(is_opendir)
-        {
-            *_errno = ENOTDIR;
-            return -1;
-        }
-        p->open_files.f[fd] = new USBTTYFile();
-        p->open_files.f[fd]->path = act_name;
-        return fd;
-#endif
-        return -1;
+        return nullptr;
     }
     if(act_name == "/dev/dri")
     {
         auto df = std::make_shared<DRIFile>();
         df->dt = DRIFile::dri_type::dir;
-        p->open_files.f[fd] = std::move(df);
-        p->open_files.f[fd]->path = act_name;
-        return fd;
+        df->path = act_name;
+        return df;
     }
     if(act_name.starts_with("/dev/dri/"))
     {
         if(is_opendir)
         {
             *_errno = ENOTDIR;
-            return -1;
+            return nullptr;
         }
-        auto rdret = dri_open(act_name.substr(9), &p->open_files.f[fd],
+        PFile fd;
+        auto rdret = dri_open(act_name.substr(9), &fd,
             (flags & 3) != O_WRONLY, (flags & 3) != O_RDONLY);
         if(rdret == 0)
         {
-            p->open_files.f[fd]->path = act_name;
+            fd->path = act_name;
             return fd;
         }
         else
         {
             *_errno = ENOENT;
-            return rdret;
+            return nullptr;
         }
     }
 
     // use lwext4
-    ext4_file _f = { 0 };
-    auto lwf = std::make_shared<LwextFile>(_f, act_name);
-    p->open_files.f[fd] = lwf;
 #if DEBUG_SYSCALL_FILESYS
     klog("syscall_open: %s.%u is LwextFile\n", p->name.c_str(), fd);
 #endif
-    cg.unlock();
 
-    if(gk_ext4_open(lwf->fname.c_str(), flags, mode, fd, _errno) < 0)
+    PFile fd;
+    if(gk_ext4_open(act_name.c_str(), flags, mode, &fd, _errno) < 0)
     {
 #ifdef DEBUG_OPEN
         klog("open: failed to open %s\n", act_name.c_str());
 #endif
-        cg.relock();
-        p->open_files.f[fd] = nullptr;
-        return -1;
+        return nullptr;
     }
     else
     {
-        p->open_files.f[fd]->path = act_name;
+        fd->path = act_name;
         return fd;
     }
+}
+
+int syscall_open(const char *pathname, int flags, int mode, int *_errno)
+{
+    // try and get free process file handle
+    ADDR_CHECK_BUFFER_R(pathname, 1);
+
+    auto cf = OpenFile(pathname, flags, mode, _errno);
+    if(!cf)
+        return -1;
+
+    auto p = GetCurrentProcessForCore();
+    CriticalGuard cg(p->open_files.sl);
+    auto fd = p->open_files.get_free_fildes();
+    if(fd == -1)
+    {
+        *_errno = EMFILE;
+        cf->Close(_errno);
+        cf->Close2(_errno);
+        return -1;
+    }
+
+    p->open_files.f[fd] = cf;
+    return fd;
 }
 
 int syscall_opendir(const char *pathname, int *_errno)

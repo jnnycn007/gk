@@ -3,32 +3,18 @@
 #include "syscalls_int.h"
 #include "vmem.h"
 #include "pmem.h"
+#include "imagefile.h"
 
-int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool global)
+int elf_load_fildes(PFile &pf, Process &p, Thread::threadstart_t *epoint, bool global, int *dl_id)
 {
-    if(fd < 0)
-        return -1;
-
-    PFile pf;
-    {
-        CriticalGuard cg(p->open_files.sl);
-        if((size_t)fd >= p->open_files.f.size())
-        {
-            return -1;
-        }
-        pf = p->open_files.f[fd];
-    }
-    if(!pf)
-    {
-        return -1;
-    }
     // we use syscall_read to write to kernel heap structures here
     ThreadPrivilegeEscalationGuard tpeg;
         
     // check header for sanity
     Elf64_Ehdr hdr;
-    deferred_call(syscall_lseek, fd, 0, SEEK_SET);
-    auto [ bret, berrno ] = deferred_call(syscall_read, fd, (char *)&hdr, sizeof(hdr));
+    int berrno;
+    pf->Lseek(0, SEEK_SET, &berrno);
+    auto bret = pf->Read((char *)&hdr, sizeof(hdr), &berrno);
     if(bret != sizeof(hdr))
     {
         klog("elf_load_fildes: failed to read header: %d, %d\n", bret, berrno);
@@ -88,14 +74,13 @@ int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool glob
         
         Therefore, ensure nothing else allocates memory in between these
          calls */
-    MutexGuard mg_vblock(p->user_mem->vblocks.m);
+    MutexGuard mg_vblock(p.user_mem->vblocks.m);
     uint64_t baseaddr = 0;
 
     {
         Process::images_t::img img;
         img.baseaddr = (void *)0;
-        img.fd = fd;
-        img.path = pf->path;
+        img.fd = pf;
         img.img = (void *)0;
         img.global = global;
 
@@ -106,8 +91,8 @@ int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool glob
         {
             auto pmb = MemBlock::FileBackedReadOnlyMemory(0, (flen + (VBLOCK_64k - 1)) & ~VBLOCK_64k, pf, 0,
                 flen, true, false);
-            MutexGuard cg(p->user_mem->m);
-            auto vb = p->user_mem->vblocks.AllocAny(pmb, false);
+            MutexGuard cg(p.user_mem->m);
+            auto vb = p.user_mem->vblocks.AllocAny(pmb, false);
             if(!vb.valid)
             {
                 klog("elf: unable to allocate vblock of length %u\n", pmb.b.length);
@@ -125,8 +110,8 @@ int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool glob
             for(auto i = 0U; i < hdr.e_phnum; i++)
             {
                 Elf64_Phdr phdr;
-                deferred_call(syscall_lseek, fd, hdr.e_phoff + hdr.e_phentsize * i, SEEK_SET);
-                std::tie(bret, berrno) = deferred_call(syscall_read, fd, (char *)&phdr, sizeof(Elf64_Phdr));
+                pf->Lseek(hdr.e_phoff + hdr.e_phentsize * i, SEEK_SET, &berrno);
+                bret = pf->Read((char *)&phdr, sizeof(Elf64_Phdr), &berrno);
                 if(bret != sizeof(Elf64_Phdr))
                 {
                     klog("elf_load_filedes: failed to load phdr: %d, %d\n", bret, berrno);
@@ -146,7 +131,7 @@ int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool glob
             }
 
             auto pmb_all_load = MemBlock::ZeroBackedReadOnlyMemory(0, max_addr, false, false);
-            auto vb_all_load = p->user_mem->vblocks.AllocAny(pmb_all_load, false);
+            auto vb_all_load = p.user_mem->vblocks.AllocAny(pmb_all_load, false);
             if(!vb_all_load.valid)
             {
                 klog("elf: unable to allocate vblock of length %u for all load segments\n",
@@ -157,15 +142,21 @@ int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool glob
             baseaddr = vb_all_load.data_start();
             img.baseaddr = (void *)(uintptr_t)baseaddr;
 
-            p->user_mem->vblocks.Dealloc(vb_all_load);
+            p.user_mem->vblocks.Dealloc(vb_all_load);
         }
 
         klog("elf: add process image: %s, fd: %d, baseaddr: %p, elf: %p, elf_len: %u\n", 
-            img.path.c_str(), img.fd, img.baseaddr, img.img, flen);
+            pf->path.c_str(), img.fd, img.baseaddr, img.img, flen);
 
         {
-            CriticalGuard cg(p->imgs.sl);
-            p->imgs.imgs.push_back(img);
+            CriticalGuard cg(p.imgs.sl);
+            if(p.imgs.img0_handle == nullptr)
+            {
+                p.imgs.img0_handle = std::make_shared<ImageFile>(pf->path, p.imgs.imgs.size());
+            }
+            if(dl_id)
+                *dl_id = p.imgs.imgs.size();
+            p.imgs.imgs.push_back(img);
         }
     }
 
@@ -173,8 +164,8 @@ int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool glob
     for(auto i = 0U; i < hdr.e_phnum; i++)
     {
         Elf64_Phdr phdr;
-        deferred_call(syscall_lseek, fd, hdr.e_phoff + hdr.e_phentsize * i, SEEK_SET);
-        std::tie(bret, berrno) = deferred_call(syscall_read, fd, (char *)&phdr, sizeof(Elf64_Phdr));
+        pf->Lseek(hdr.e_phoff + hdr.e_phentsize * i, SEEK_SET, &berrno);
+        bret = pf->Read((char *)&phdr, sizeof(Elf64_Phdr), &berrno);
         if(bret != sizeof(Elf64_Phdr))
         {
             klog("elf_load_filedes: failed to load phdr: %d, %d\n", bret, berrno);
@@ -197,28 +188,28 @@ int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool glob
             bool is_tls = phdr.p_type == PT_TLS;
             if(is_tls)
             {
-                if(p->vb_tls.valid)
+                if(p.vb_tls.valid)
                 {
                     klog("elf: too many PT_TLS sections in file\n");
                     return -1;
                 }
 
-                MutexGuard mg(p->user_mem->m);
-                p->vb_tls = p->user_mem->vblocks.AllocAny(
+                MutexGuard mg(p.user_mem->m);
+                p.vb_tls = p.user_mem->vblocks.AllocAny(
                     MemBlock::FileBackedReadOnlyMemory(0, phdr.p_memsz, pf, phdr.p_offset, phdr.p_filesz,
                         false, false), false);
-                if(!p->vb_tls.valid)
+                if(!p.vb_tls.valid)
                 {
                     klog("elf: couldn't allocate vblock for PT_TLS of size %llu\n",
                         phdr.p_memsz);
                     return -1;
                 }
-                p->vb_tls_data_size = phdr.p_memsz;
+                p.vb_tls_data_size = phdr.p_memsz;
             }
             else if(writeable)
             {
-                MutexGuard mg(p->user_mem->m);
-                auto vbret = p->user_mem->vblocks.AllocFixed(
+                MutexGuard mg(p.user_mem->m);
+                auto vbret = p.user_mem->vblocks.AllocFixed(
                     MemBlock::FileBackedReadWriteMemory(mem_start, memsz, pf, f_start,
                         filesz, true, exec));
                 if(!vbret.valid)
@@ -230,8 +221,8 @@ int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool glob
             }
             else
             {
-                MutexGuard mg(p->user_mem->m);
-                auto vbret = p->user_mem->vblocks.AllocFixed(
+                MutexGuard mg(p.user_mem->m);
+                auto vbret = p.user_mem->vblocks.AllocFixed(
                     MemBlock::FileBackedReadOnlyMemory(mem_start, memsz, pf, f_start,
                         filesz, true, exec));
                 if(!vbret.valid)
@@ -245,21 +236,9 @@ int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool glob
     }
 
     {
-        MutexGuard mg(p->user_mem->m);
+        MutexGuard mg(p.user_mem->m);
         klog("elf: userspace map:\n");
-        p->user_mem->vblocks.Traverse([](MemBlock &mb)
-        {
-            klog("mmap: %p - %p, %s%s%s%s %llx %llx\n",
-                (void *)mb.b.data_start(),
-                (void *)mb.b.data_end(),
-                mb.b.user ? "U" : " ",
-                mb.b.write ? "W" : " ",
-                mb.b.exec ? "X" : " ",
-                (mb.f == nullptr) ? "" : " FILE",
-                mb.foffset,
-                mb.flen);
-            return 0;
-        });
+        p.user_mem->Dump();
     }
 
     if(epoint)

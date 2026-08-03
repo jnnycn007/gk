@@ -21,7 +21,9 @@ enum FileType
     FT_FAT,
     FT_DRI,
     FT_Fence,
-    FT_DMABuf
+    FT_DMABuf,
+    FT_ImageFile,
+    FT_ClosedImageFile
 };
 
 class File
@@ -63,6 +65,9 @@ class File
 
 using PFile = std::shared_ptr<File>;
 using WPFile = std::weak_ptr<File>;
+
+PFile OpenFile(const char *pathname, int flags, int mode, int *_errno);
+std::string parse_fname(const std::string &pname);
 
 class UARTFile : public File
 {

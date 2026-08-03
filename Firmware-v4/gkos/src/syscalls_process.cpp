@@ -23,11 +23,11 @@ int syscall_proccreate(const char *fname, const proccreate_t *proc_info, pid_t *
         pname = lastslash + 1;
 
     // open the file
-    auto fd = syscall_open(fname, O_RDONLY, 0, _errno);
-    if(fd < 0)
+    auto fd = OpenFile(fname, O_RDONLY, 0, _errno);
+    if(fd == nullptr)
     {
         klog("process_create: open(%s) failed %d\n", fname, _errno);
-        return fd;
+        return -1;
     }
 
     // create process object
@@ -36,16 +36,14 @@ int syscall_proccreate(const char *fname, const proccreate_t *proc_info, pid_t *
     {
         klog("process_create: Process::Create failed\n");
         *_errno = EFAULT;
-        syscall_close1(fd, _errno);
-        syscall_close2(fd, _errno);
+        fd->Close(_errno);
+        fd->Close2(_errno);
         return -1;
     }
 
     // parse elf file
     Thread::threadstart_t proc_ep;
-    auto ret = elf_load_fildes(fd, proc, &proc_ep);
-    syscall_close1(fd, _errno);
-    syscall_close2(fd, _errno);
+    auto ret = elf_load_fildes(fd, *proc, &proc_ep);
     if(ret != 0)
     {
         klog("process_create: elf_load_fildes failed: ret: %d\n", ret);

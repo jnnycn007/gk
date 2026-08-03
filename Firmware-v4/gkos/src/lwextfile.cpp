@@ -6,9 +6,8 @@
 #include "thread.h"
 #include "process.h"
 
-LwextFile::LwextFile(ext4_file fildes, std::string _fname) : f(fildes)
+LwextFile::LwextFile()
 { 
-    fname = _fname;
     type = FileType::FT_Lwext;
 }
 
@@ -49,7 +48,7 @@ int LwextFile::Fstat(struct stat *buf, int *_errno)
         *_errno = EBADF;
         return -1;
     }
-    return gk_ext4_fstat(f, d, is_dir, buf, fname.c_str(), _errno);
+    return gk_ext4_fstat(f, d, is_dir, buf, path.c_str(), _errno);
 }
 
 off_t LwextFile::Lseek(off_t offset, int whence, int *_errno)

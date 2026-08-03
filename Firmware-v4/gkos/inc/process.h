@@ -161,15 +161,19 @@ class Process
         struct images_t
         {
             Spinlock sl;
+            Mutex m = Mutex(true);
 
             struct img
             {
-                std::string path;
-                int fd;
+                PFile fd;
+                WPFile handle;
                 void *baseaddr;
                 void *img;
                 bool global;
             };
+
+            // persistent handle to image 0 so it can never be dlclose()'d
+            PFile img0_handle;
 
             std::vector<img> imgs;
         };

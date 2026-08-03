@@ -8,7 +8,8 @@
 
 extern std::vector<std::string> empty_string_vector;
 
-int elf_load_fildes(int fd, PProcess p, Thread::threadstart_t *epoint, bool global = true);
+int elf_load_fildes(PFile &pf, Process &p, Thread::threadstart_t *epoint, bool global = true,
+	int *dl_id = nullptr);
 
 void handle_newlibinithook(uint32_t lr, uint32_t *retaddr);
 

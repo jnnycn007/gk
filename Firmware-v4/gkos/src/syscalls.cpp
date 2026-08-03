@@ -1111,6 +1111,23 @@ void SyscallHandler(syscall_no sno, void *r1, void *r2, void *r3, uintptr_t lr, 
             }
             break;
 
+        case __syscall_dlopen:
+            {
+                auto p = reinterpret_cast<__syscall_dlopen_params *>(r2);
+                *reinterpret_cast<int *>(r1) = syscall_dlopen(p->path, &p->dl_id,
+                    p->global, p->run_init, reinterpret_cast<int *>(r3));
+            }
+            break;
+
+        case __syscall_getdlex:
+            {
+                auto p = reinterpret_cast<__syscall_getdlex_params *>(r2);
+                *reinterpret_cast<int *>(r1) = syscall_getdlex(&p->dl_id, p->fd,
+                    p->name, p->namelen, p->img, p->baseaddr, p->global,
+                    reinterpret_cast<int *>(r3));
+            }
+            break;
+
         case __syscall_ioctl:
         {
             ThreadDeletionPreventionGuard tdpg;
