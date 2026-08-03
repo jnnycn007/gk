@@ -16,3 +16,14 @@ int ImageFile::GetDlId() const
 {
     return dl_id;
 }
+
+int ImageFile::Close(int *_errno)
+{
+    if(type == FT_ClosedImageFile)
+    {
+        klog("ImageFile: closing dl_id %d\n", dl_id);
+        // TODO
+    }
+
+    return 0;
+}

@@ -210,5 +210,51 @@ int syscall_getdlex(int *dl_id, int fd, char *name, size_t *namelen, void **img,
     }
 
     return 0;
+}
 
+int syscall_dlclose(int fd, int *run_fini, int *_errno)
+{
+    if(fd < 0)
+    {
+        *_errno = EBADF;
+        return -1;
+    }
+
+    auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = ENOSYS;
+        return -1;
+    }
+
+    // default is to not run .fini
+    if(run_fini)
+        *run_fini = 0;
+
+    MutexGuard mg(p->imgs.m);
+    CriticalGuard cg(p->open_files.sl);
+    if((unsigned)fd >= p->open_files.f.size() || !p->open_files.f[fd] || 
+        p->open_files.f[fd]->GetType() != FT_ImageFile)
+    {
+        *_errno = EBADF;
+        return -1;
+    }
+
+    // are we the last user of this file?
+    if(p->open_files.f[fd].use_count() == 1)
+    {
+        // switch it to a ClosedImageFile
+        ((ImageFile *)p->open_files.f[fd].get())->DlClose();
+
+        // tell the user to run .fini etc
+        if(run_fini)
+            *run_fini = 1;
+    }
+    else
+    {
+        // not the last user - simply delete the fd
+        p->open_files.f[fd].reset();
+    }
+
+    return 0;
 }

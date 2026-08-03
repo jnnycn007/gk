@@ -1128,6 +1128,14 @@ void SyscallHandler(syscall_no sno, void *r1, void *r2, void *r3, uintptr_t lr, 
             }
             break;
 
+        case __syscall_dlclose:
+            {
+                auto p = reinterpret_cast<__syscall_dlclose_params *>(r2);
+                *reinterpret_cast<int *>(r1) = syscall_dlclose(p->fd,
+                    p->run_fini, reinterpret_cast<int *>(r3));
+            }
+            break;
+
         case __syscall_ioctl:
         {
             ThreadDeletionPreventionGuard tdpg;

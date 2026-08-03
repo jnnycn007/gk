@@ -235,11 +235,13 @@ int elf_load_fildes(PFile &pf, Process &p, Thread::threadstart_t *epoint, bool g
         }
     }
 
+#if DEBUG_LOADIMAGE
     {
         MutexGuard mg(p.user_mem->m);
         klog("elf: userspace map:\n");
         p.user_mem->Dump();
     }
+#endif
 
     if(epoint)
         *epoint = (Thread::threadstart_t)hdr.e_entry;

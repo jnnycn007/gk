@@ -33,6 +33,7 @@ class ImageFile : public File
         ImageFile(const std::string &path, int dl_id);
         void DlClose();
         int GetDlId() const;
+        int Close(int *_errno);
 };
 
 #endif
