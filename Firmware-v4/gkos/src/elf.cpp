@@ -77,6 +77,8 @@ int elf_load_fildes(PFile &pf, Process &p, Thread::threadstart_t *epoint, bool g
     MutexGuard mg_vblock(p.user_mem->vblocks.m);
     uint64_t baseaddr = 0;
 
+    std::vector<VMemBlock> *img_memblocks = nullptr;
+
     {
         Process::images_t::img img;
         img.baseaddr = (void *)0;
@@ -156,7 +158,9 @@ int elf_load_fildes(PFile &pf, Process &p, Thread::threadstart_t *epoint, bool g
             }
             if(dl_id)
                 *dl_id = p.imgs.imgs.size();
-            p.imgs.imgs.push_back(img);
+
+            img_memblocks = img.mregs.get();
+            p.imgs.imgs.push_back(std::move(img));
         }
     }
 
@@ -205,6 +209,8 @@ int elf_load_fildes(PFile &pf, Process &p, Thread::threadstart_t *epoint, bool g
                     return -1;
                 }
                 p.vb_tls_data_size = phdr.p_memsz;
+                if(img_memblocks)
+                    img_memblocks->push_back(p.vb_tls);
             }
             else if(writeable)
             {
@@ -218,6 +224,8 @@ int elf_load_fildes(PFile &pf, Process &p, Thread::threadstart_t *epoint, bool g
                         (void *)(mem_start + memsz));
                     return -1;
                 }
+                if(img_memblocks)
+                    img_memblocks->push_back(vbret);
             }
             else
             {
@@ -231,6 +239,8 @@ int elf_load_fildes(PFile &pf, Process &p, Thread::threadstart_t *epoint, bool g
                         (void *)(mem_start + memsz));
                     return -1;
                 }
+                if(img_memblocks)
+                    img_memblocks->push_back(vbret);
             }
         }
     }

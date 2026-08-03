@@ -170,6 +170,9 @@ class Process
                 void *baseaddr;
                 void *img;
                 bool global;
+
+                std::unique_ptr<std::vector<VMemBlock>> mregs =
+                    std::make_unique<std::vector<VMemBlock>>();
             };
 
             // persistent handle to image 0 so it can never be dlclose()'d

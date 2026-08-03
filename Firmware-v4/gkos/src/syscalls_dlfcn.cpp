@@ -59,11 +59,14 @@ int syscall_dlopen(const char *path, int *dl_id, int global, int *run_init, int 
         CriticalGuard cg(p->imgs.sl);
         if((unsigned)*dl_id < p->imgs.imgs.size())
         {
-            ret = p->imgs.imgs[*dl_id].handle.lock();
-            if(ret->GetType() != FT_ImageFile)
+            if(p->imgs.imgs[*dl_id].fd)
             {
-                // potentially already closing
-                ret = nullptr;
+                ret = p->imgs.imgs[*dl_id].handle.lock();
+                if(ret && ret->GetType() != FT_ImageFile)
+                {
+                    // potentially already closing
+                    ret = nullptr;
+                }
             }
         }
     }
@@ -81,7 +84,7 @@ int syscall_dlopen(const char *path, int *dl_id, int global, int *run_init, int 
             for(auto idx = 0u; idx < p->imgs.imgs.size(); idx++)
             {
                 auto &cimg = p->imgs.imgs[idx];
-                if(cimg.fd->path == act_path)
+                if(cimg.fd && cimg.fd->path == act_path)
                 {
                     ret = cimg.handle.lock();
                     if(ret && ret->GetType() == FT_ImageFile)
