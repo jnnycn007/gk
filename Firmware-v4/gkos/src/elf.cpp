@@ -155,6 +155,7 @@ int elf_load_fildes(PFile &pf, Process &p, Thread::threadstart_t *epoint, bool g
             if(p.imgs.img0_handle == nullptr)
             {
                 p.imgs.img0_handle = std::make_shared<ImageFile>(pf->path, p.imgs.imgs.size());
+                img.handle = p.imgs.img0_handle;
             }
             if(dl_id)
                 *dl_id = p.imgs.imgs.size();
