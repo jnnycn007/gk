@@ -76,27 +76,23 @@ static void _queue_if_possible(audio_conf &ac, uint64_t ttbr0);
 }
 
 /* Return volume as expected to be written to one DAC channel */
-static inline uint16_t pcm1753_volume(int volume)
+static inline uint16_t tad_volume(int volume)
 {
     if(volume == 0)
         return 0;
+
+    /* From testing volume is best from ~30% of full range to 70% on headphones,
+        and around 40% to 80-90% on speaker.
+        
+        Therefore scale from 0.3*255.0 to 255.0, and allow finer adjustments in
+            supervisor (e.g. 5%) */
+
     
-    // Linear scale from 0 to 255
-    auto vol_i = (int)std::round((double)volume * 255.0 / 100.0);
+    auto vol_i = (int)std::round((double)volume * 0.7 * 255.0 / 100.0 + 0.3 * 255.0);
     if(vol_i < 0) vol_i = 0;
     if(vol_i > 255) vol_i = 255;
 
     return (uint16_t)vol_i;
-}
-
-/* Return volume per channel */
-static inline uint16_t pcm1753_volume_left(int volume)
-{
-    return 0x1000U | pcm1753_volume(volume);
-}
-static inline uint16_t pcm1753_volume_right(int volume)
-{
-    return 0x1100U | pcm1753_volume(volume);
 }
 
 static void pcm_mute_set(bool val)
@@ -767,8 +763,8 @@ int sound_set_volume(int new_vol_pct, bool persist)
     }
 
     // set volume on PCM
-    tad_write(0x67, pcm1753_volume(new_vol_pct));
-    tad_write(0x69, pcm1753_volume(new_vol_pct));
+    tad_write(0x67, tad_volume(new_vol_pct));
+    tad_write(0x69, tad_volume(new_vol_pct));
 
     if(persist)
     {
