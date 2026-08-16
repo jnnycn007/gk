@@ -68,21 +68,24 @@ extern "C" void mp_kmain(const gkos_boot_interface *gbi, uint64_t magic)
 
     clock_takeover();
 
-    // determine board type
-    auto pmic_prod_id = pmic_read_register(0);
+    if(gbi->btype != gkos_boot_interface::board_type::QEMU)
+    {
+        // determine board type
+        auto pmic_prod_id = pmic_read_register(0);
 
-    if(pmic_prod_id == 0x22)
-    {
-        btype = gkos_boot_interface::board_type::GKV4;
-    }
-    else if(pmic_prod_id == 0x20)
-    {
-        btype = gkos_boot_interface::board_type::EV1;
-    }
-    else
-    {
-        klog("SM: unknown product id: %x\n", pmic_prod_id);
-        while(true);
+        if(pmic_prod_id == 0x22)
+        {
+            btype = gkos_boot_interface::board_type::GKV4;
+        }
+        else if(pmic_prod_id == 0x20)
+        {
+            btype = gkos_boot_interface::board_type::EV1;
+        }
+        else
+        {
+            klog("SM: unknown product id: %x\n", pmic_prod_id);
+            while(true);
+        }
     }
 
     // init el1 vmem
