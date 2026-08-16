@@ -4,11 +4,14 @@
 #include "time.h"
 #include "logger.h"
 #include "cpuclock.h"
+#include "gkos_boot_interface.h"
 
 static void clock_start_sys();
 
 volatile uint64_t * const _cur_s = (volatile uint64_t *)0x0e0bfe00;
 volatile uint64_t * const _tim_precision_ns = (volatile uint64_t *)0x0e0bfe08;
+
+extern gkos_boot_interface gbi;
 
 void init_clocks()
 {
@@ -67,7 +70,8 @@ void init_clocks()
 
     // Now, set up the internal CA35SS PLL1
     // Note frequencies > 1200 MHz require a "F" chip and a VCPU boost
-    clock_set_cpu(1200000000);
+    if(gbi.btype != gkos_boot_interface::board_type::QEMU)
+        clock_set_cpu(1200000000);
 
     // start the system timer
     clock_start_sys();
