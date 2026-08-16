@@ -1,0 +1,2 @@
+Creates a flash iamge from the various firmware images suitable to use
+as the -pflash argument to qemu.

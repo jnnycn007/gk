@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+import sys
+from elftools.elf.elffile import ELFFile
+import argparse
+
+FLASH_BASE = 0x60000000
+
+parser = argparse.ArgumentParser("flash_image_maker")
+parser.add_argument("-o", "--output-file", type=str, help="Output filename", required=True)
+parser.add_argument("-s", "--output-size", type=int, help="Size of output flash file", required=False, default=4*1024*1024)
+parser.add_argument("input_files", nargs="+")
+args = parser.parse_args()
+
+flash_buffer = bytearray(args.output_size)
+
+for ifile in args.input_files:
+    with open(ifile, "rb") as f:
+        elffile = ELFFile(f)
+
+        for segment in elffile.iter_segments():
+            if segment['p_type'] == 'PT_LOAD':
+                data = segment.data()
+                paddr = segment['p_paddr']
+                flash_offset = paddr - FLASH_BASE
+
+                if flash_offset < 0 or (flash_offset + len(data)) > args.output_size:
+                    print("Segment outside flash: {hex(paddr)} - {hex(paddr + len(data))}")
+                    sys.exit(1)
+                
+                flash_buffer[flash_offset:flash_offset + len(data)] = data
+
+with open(args.output_file, "wb") as f:
+    f.write(flash_buffer)
