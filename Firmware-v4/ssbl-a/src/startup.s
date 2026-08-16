@@ -120,9 +120,9 @@ AP_Hold:
     str w3, [x2]
     mov w3, #(1U << (6 + 16))
     str w3, [x2]
-    ldr x2, [x0]
-    cmp x2, #0
+    ldr x4, [x0]
+    cmp x4, #0
     beq 1b
-    br x2
+    br x4
 
 .size AP_Hold, .-AP_Hold
