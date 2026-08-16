@@ -13,7 +13,8 @@ struct gkos_boot_interface
     enum board_type
     {
         EV1,
-        GKV4
+        GKV4,
+        QEMU
     };
 
     board_type btype;
