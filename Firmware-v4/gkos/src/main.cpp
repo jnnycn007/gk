@@ -91,6 +91,9 @@ extern "C" int mp_kmain(const gkos_boot_interface *_gbi, uint64_t magic)
         case gkos_boot_interface::board_type::EV1:
             klog("gkos: booting on EV1 board\n");
             break;
+        case gkos_boot_interface::board_type::QEMU:
+            klog("gkos: booting on qemu\n");
+            break;
     }
 
     klogbuffer_purge_uart();
