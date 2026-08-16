@@ -33,6 +33,12 @@ void ap_main();
 
 int main(uint32_t bootrom_val)
 {
+    // detect qemu
+    if((RCC->IDR & 0x80000000u) != 0)
+        gbi.btype = gkos_boot_interface::board_type::QEMU;
+    else
+        gbi.btype = (gkos_boot_interface::board_type)0;     // fill in later
+    
     // Set up clocks for CPU1
     klog("SSBL: start\n");
     init_gic();
@@ -82,47 +88,51 @@ int main(uint32_t bootrom_val)
     }
 
     // get some details from STPMIC25
-    klog("SSBL: PMIC PRODUCT_ID: %08x, VERSION_SR: %08x\n",
-        pmic_read_register(0), pmic_read_register(1));
-
-    // start buck 7 if not already on
-    pmic_vreg buck7 { pmic_vreg::Buck, 7, true, 3300, pmic_vreg::HP };
-    pmic_set(buck7);
-    
-    pmic_dump_status();
-
-    // Why did we just switch on?
-    auto sw_on_reason = pmic_read_register(0x02);
-    auto reset_sr = pmic_read_register(0x04);
-    klog("SSBL: TURN_ON_SR: %02x, TURN_OFF_SR: %02x, RESTART_SR: %02x\n", sw_on_reason,
-        pmic_read_register(0x03), reset_sr);
-    klog("SSBL: PADS_PULL_CR: %02x, INT_SRC_R1: %02x\n",
-        pmic_read_register(0x18), pmic_read_register(0x7c));
-
-    if(sw_on_reason == 0x08 || sw_on_reason == 0x04 || reset_sr == 0x02)
+    if(gbi.btype != gkos_boot_interface::board_type::QEMU)
     {
-        // AUTO turn on by VIN going high or VBUS turn on - just switch off again
-        // or reset by long press PONKEY - again just switch off
-        klog("SSBL: auto turn on - shutting down\n");
-        while(!(USART6->ISR & USART_ISR_TXFE));
-        pmic_write_register(0x10, 0x81);
-        while(true);
-    }
+        klog("SSBL: PMIC PRODUCT_ID: %08x, VERSION_SR: %08x\n",
+            pmic_read_register(0), pmic_read_register(1));
 
-    // say hi if reset via CPU or via NRST
-    if(reset_sr == 0x40 || reset_sr == 0x01)
-    {
-        const pin &hi_pin = (pmic_read_register(0) == 0x22) ? GK_BTNLED_R : EV_BLUE;
-        for(int n = 0; n < 40; n++)
+        // start buck 7 if not already on
+        pmic_vreg buck7 { pmic_vreg::Buck, 7, true, 3300, pmic_vreg::HP };
+        pmic_set(buck7);
+        
+        pmic_dump_status();
+
+        // Why did we just switch on?
+        auto sw_on_reason = pmic_read_register(0x02);
+        auto reset_sr = pmic_read_register(0x04);
+        klog("SSBL: TURN_ON_SR: %02x, TURN_OFF_SR: %02x, RESTART_SR: %02x\n", sw_on_reason,
+            pmic_read_register(0x03), reset_sr);
+        klog("SSBL: PADS_PULL_CR: %02x, INT_SRC_R1: %02x\n",
+            pmic_read_register(0x18), pmic_read_register(0x7c));
+
+        if(sw_on_reason == 0x08 || sw_on_reason == 0x04 || reset_sr == 0x02)
         {
-            hi_pin.set();
-            for(int i = 0; i < 2500000; i++);
-            hi_pin.clear();
-            for(int i = 0; i < 2500000; i++);
+            // AUTO turn on by VIN going high or VBUS turn on - just switch off again
+            // or reset by long press PONKEY - again just switch off
+            klog("SSBL: auto turn on - shutting down\n");
+            while(!(USART6->ISR & USART_ISR_TXFE));
+            pmic_write_register(0x10, 0x81);
+            while(true);
+        }
+
+        // say hi if reset via CPU or via NRST
+        if(reset_sr == 0x40 || reset_sr == 0x01)
+        {
+            const pin &hi_pin = (pmic_read_register(0) == 0x22) ? GK_BTNLED_R : EV_BLUE;
+            for(int n = 0; n < 40; n++)
+            {
+                hi_pin.set();
+                for(int i = 0; i < 2500000; i++);
+                hi_pin.clear();
+                for(int i = 0; i < 2500000; i++);
+            }
         }
     }
 
-    init_ddr();
+    if(gbi.btype != gkos_boot_interface::board_type::QEMU)
+        init_ddr();
 
     /* Give everything access to all of DDR, in privileged and unprivileged modes (still secure though) */
     RISAF4->REG[0].CFGR = 0;
