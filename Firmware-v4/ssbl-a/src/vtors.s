@@ -105,7 +105,7 @@ _vtor_tbl_entry _lower32_serror
 
     ldr x0, =_ap_sstack
     ldr x1, =_ap_estack
-    beq 2f
+    b 2f
 1:
     ldr x0, =_mp_sstack
     ldr x1, =_mp_estack
