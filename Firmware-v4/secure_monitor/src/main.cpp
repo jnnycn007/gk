@@ -87,6 +87,10 @@ extern "C" void mp_kmain(const gkos_boot_interface *gbi, uint64_t magic)
             while(true);
         }
     }
+    else
+    {
+        btype = gbi->btype;
+    }
 
     // init el1 vmem
     init_vmem(1);
