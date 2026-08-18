@@ -125,7 +125,11 @@ static void reset_cm33()
     RCC_VMEM->CPUBOOTCR &= ~RCC_CPUBOOTCR_BOOT_CPU2;
     (void)RCC_VMEM->CPUBOOTCR;
     RCC_VMEM->C2RSTCSETR = RCC_C2RSTCSETR_C2RST;
-    while(RCC_VMEM->C2RSTCSETR & RCC_C2RSTCSETR_C2RST);
+    __asm__ volatile("dsb sy\n" ::: "memory");
+    while(RCC_VMEM->C2RSTCSETR & RCC_C2RSTCSETR_C2RST)
+    {
+        Block(clock_cur() + kernel_time_from_ms(10));
+    }
 
     // Give CM33 secure access to OSPI
     RISAF2_VMEM->REG[0].CFGR = 0;
