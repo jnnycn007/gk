@@ -58,13 +58,24 @@ void init_gic()
     *(volatile uint32_t *)(GIC_DISTRIBUTOR_BASE + 0x080 + 0x4 * (138 / 32)) =
         *(volatile uint32_t *)(GIC_DISTRIBUTOR_BASE + 0x080 + 0x4 * (138 / 32)) &
         ~(1UL << (138 % 32));
+
+    /* Set all group 1 interrupts to priority 0x80, all group 0 to 0 (highest) */
+    for(auto i = 0U; i < 104u; i++)
+    {
+        *(volatile uint32_t *)(GIC_DISTRIBUTOR_BASE + 0x400 + 0x4 * i) = 0x80808080UL;
+    }
+    for(auto i = 8u; i < 16u; i++)
+    {
+        gic_set_priority(i, 0);
+    }
+    gic_set_priority(138, 0);
     
     /* Set up the distributor to pass IRQs to the cores */
     *(volatile uint32_t *)(GIC_DISTRIBUTOR_BASE + 0) = 0x3;     // CTLR
 
     /* Now set up the current core to handle interrupts, route group 0 to FIQ */
     *(volatile uint32_t *)(GIC_INTERFACE_BASE + 0) = 0x3 | (1UL << 3);       // CTLR, FIQEN
-    *(volatile uint32_t *)(GIC_INTERFACE_BASE + 0x4) = 0x80;    // priority mask - half-way value
+    *(volatile uint32_t *)(GIC_INTERFACE_BASE + 0x4) = 0xf8;    // priority mask - lowest value i.e. pass all
 
     /* Within the core, enable interrupts.
         Route FIQ to EL3, keep IRQ at own level
