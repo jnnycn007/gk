@@ -23,6 +23,8 @@ bool usb_israwsd = false;
 
 extern unsigned int reboot_flags;
 
+extern gkos_boot_interface gbi;
+
 PProcess p_usb;
 
 // some/all of these need cache_line_size alignment
@@ -51,6 +53,9 @@ FixedQueue<uint32_t, 32> usb_queue;
 
 void init_usb()
 {
+    if(gbi.btype == gkos_boot_interface::board_type::QEMU)
+        return;     // QEMU is not a usb device
+    
     usb_init_chip_id();
 
     /* It may be we already have the USB set up in device mode from bootrom - check here */
