@@ -51,3 +51,6 @@ for ifile in args.input_files:
 
 with open(args.output_file, "wb") as f:
     f.write(flash_buffer)
+
+# e.g. python3 .\flash_image_maker.py -o test.img ..\ssbl-a\build\gkv4_ssbl_a.elf ..\gkos\build\gkos.bin.elf ..\secure_monitor\build\gkos_sm.bin.elf
+# run with: /build/qemu-system-aarch64 -machine gk -kernel ~/jncro/source/repos/gk/Firmware-v4/fsbl-a/build/gkv4_fsbl_a.elf -m 1G -pflash ~/jncro/source/repos/gk/Firmware-v4/flash_image_maker/test.img  -sd ~/sd.qcow2 -monitor stdio
