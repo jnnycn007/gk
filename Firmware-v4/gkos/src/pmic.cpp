@@ -13,8 +13,13 @@
 
 #define I2C_ADDR 0x33
 
+extern gkos_boot_interface gbi;
+
 uint8_t pmic_read_register(uint8_t addr)
 {
+    if(gbi.btype == gkos_boot_interface::board_type::QEMU)
+        return 0;
+    
     uint8_t ret;
     auto &i2c7 = i2c(7);
     if(i2c7.RegisterRead(I2C_ADDR, addr, &ret, 1) == 1)
@@ -24,6 +29,9 @@ uint8_t pmic_read_register(uint8_t addr)
 
 void pmic_write_register(uint8_t addr, uint8_t val)
 {
+    if(gbi.btype == gkos_boot_interface::board_type::QEMU)
+        return;
+
     auto &i2c7 = i2c(7);
     i2c7.RegisterWrite(I2C_ADDR, addr, &val, 1);
 }
@@ -364,6 +372,9 @@ static int pmic_set_power_target(pmic_vreg::_type type, unsigned int id, unsigne
 
 int pmic_set_power(PMIC_Power_Target target, unsigned int voltage_mv)
 {
+    if(gbi.btype == gkos_boot_interface::board_type::QEMU)
+        return voltage_mv;
+    
     // get PMIC version and use to deduce setup
     auto pmic_prod_id = pmic_read_register(0);
 
@@ -601,6 +612,12 @@ static void *pmic_thread(void *)
 
 void init_pmic()
 {
+    if(gbi.btype == gkos_boot_interface::board_type::QEMU)
+    {
+        // doesn't have a pmic
+        return;
+    }
+
     sched.Schedule(Thread::Create("pmic", pmic_thread, nullptr, true,
         GK_PRIORITY_VHIGH, p_kernel));
 }
