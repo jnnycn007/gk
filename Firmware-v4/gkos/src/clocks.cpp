@@ -19,10 +19,12 @@ static timespec timebase;
 static void init_rtc();
 time_t timegm (struct tm* tim_p);
 
-void init_clocks(const gkos_boot_interface *gbi)
+extern gkos_boot_interface gbi;
+
+void init_clocks(const gkos_boot_interface *_gbi)
 {
-    _cur_s = (volatile uint64_t *)(PMEM_TO_VMEM_DEVICE((uint64_t)gbi->cur_s));
-    _tim_precision_ns = (volatile uint64_t *)(PMEM_TO_VMEM_DEVICE((uint64_t)gbi->tim_ns_precision));
+    _cur_s = (volatile uint64_t *)(PMEM_TO_VMEM_DEVICE((uint64_t)_gbi->cur_s));
+    _tim_precision_ns = (volatile uint64_t *)(PMEM_TO_VMEM_DEVICE((uint64_t)_gbi->tim_ns_precision));
 
     init_rtc();
 }
@@ -69,6 +71,9 @@ void udelay(unsigned int d)
 
 unsigned int clock_set_cpu_and_vddcpu(unsigned int freq)
 {
+    if(gbi.btype == gkos_boot_interface::board_type::QEMU)
+        return freq;
+
 #if GK_OVERCLOCK_MHZ
     const unsigned int max_freq = GK_OVERCLOCK_MHZ * 1000000U;
 #else
