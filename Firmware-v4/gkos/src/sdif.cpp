@@ -258,7 +258,7 @@ int SDIF::reset()
         }
         else
         {
-            klog("sd%d: CMD8 invalid response %lx\n", resp[0], iface_id);
+            klog("sd%d: CMD8 invalid response %lx\n", iface_id, resp[0]);
             return -1;
         }
     }
