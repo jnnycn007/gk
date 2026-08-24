@@ -323,6 +323,7 @@ void SDMMC1_IRQHandler()
     }
 
     SDMMC1_VMEM->ICR = sta & (errors | DATAEND) & 0x4005ff;
+    __asm__ volatile("dsb sy\n" ::: "memory");
 }
 
 bool sd_get_ready()
