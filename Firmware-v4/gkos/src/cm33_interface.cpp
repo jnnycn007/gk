@@ -150,8 +150,11 @@ static void reset_cm33()
     RCC_VMEM->FINDIVxCFGR[46] = 0x40;    // enabled, div 1
     __asm__ volatile("dsb sy\n" ::: "memory");
 
-    RCC_VMEM->ADC12CFGR |= RCC_ADC12CFGR_ADC12EN;
+    RCC_VMEM->ADC12CFGR |= RCC_ADC12CFGR_ADC12RST;
+    __asm__ volatile("dsb sy\n" ::: "memory");
     RCC_VMEM->ADC12CFGR &= ~RCC_ADC12CFGR_ADC12RST;
+    __asm__ volatile("dsb sy\n" ::: "memory");
+    RCC_VMEM->ADC12CFGR |= RCC_ADC12CFGR_ADC12EN;
     __asm__ volatile("dsb sy\n" ::: "memory");
 
     /* Pins for CM33 to use:
@@ -302,6 +305,11 @@ static void *cm33_manager_thread(void *)
                 {
                     is_init = true;
                     klog("cm33: status %x\n", dk->sr);
+                }
+                else if(dk->sr & CM33_DK_SR_FAIL)
+                {
+                    klog("cm33: FAIL: %08x %08x %08x %08x\n",
+                        dk->fail[0], dk->fail[1], dk->fail[2], dk->fail[3]);
                 }
                 else
                 {
