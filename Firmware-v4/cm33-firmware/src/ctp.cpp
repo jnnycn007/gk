@@ -12,6 +12,7 @@
 #include "interface/cm33_data.h"
 #include "message.h"
 #include <atomic>
+#include <cmath>
 
 extern cm33_data_kernel dk;
 
