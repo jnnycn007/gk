@@ -128,6 +128,8 @@ class CriticalGuard
 
                 auto delay = prng_state % current_window + core_id * core_step;
 
+                __asm__ volatile("sev\n" ::: "memory");
+
                 for(auto j = 0u; j < delay; j++)
                     __asm__ volatile("yield\n" ::: "memory");
             }
