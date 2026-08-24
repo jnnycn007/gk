@@ -1,5 +1,5 @@
 #ifndef DEBOUNCE_H
-#define DEBOUNCH_H
+#define DEBOUNCE_H
 
 #include <cstdint>
 #include <climits>
