@@ -28,6 +28,8 @@ std::shared_ptr<BlockDevice> sd_dev;
 std::shared_ptr<BlockDevice> ext_dev;
 std::shared_ptr<BlockDevice> fat_dev;
 
+extern gkos_boot_interface gbi;
+
 void *init_thread(void *)
 {
     // Clear out reboot flags (already cached in reboot_flags variable)
@@ -82,7 +84,8 @@ void *init_thread(void *)
     if(!(reboot_flags & GK_REBOOTFLAG_RAWSD) && fat_dev)
         fs_provision();
     
-    usb_process_start();
+    if(gbi.btype != gkos_boot_interface::board_type::QEMU)
+        usb_process_start();
 
     // start supervisor
     init_supervisor();
@@ -99,11 +102,15 @@ void *init_thread(void *)
 #endif
     
 #if GK_ENABLE_NETWORK && GK_ENABLE_WIFI
-    airoc_if = std::make_unique<WifiAirocNetInterface>();
-    airoc_if->DynamicIP = true;
-    airoc_if->OnIPAssign.push_back(std::make_unique<NTPOnConnectScript>());
-    //airoc_if->OnIPAssign.push_back(std::make_unique<TelnetOnConnectScript>());
-    net_register_interface(airoc_if.get());
+    if(gbi.btype != gkos_boot_interface::board_type::QEMU &&
+        gbi.btype != gkos_boot_interface::board_type::EV1)
+    {
+        airoc_if = std::make_unique<WifiAirocNetInterface>();
+        airoc_if->DynamicIP = true;
+        airoc_if->OnIPAssign.push_back(std::make_unique<NTPOnConnectScript>());
+        //airoc_if->OnIPAssign.push_back(std::make_unique<TelnetOnConnectScript>());
+        net_register_interface(airoc_if.get());
+    }
 #endif
 
     // start gksupervisor
@@ -170,7 +177,8 @@ void *init_thread(void *)
         }    
     }
 
-    init_etnaviv();
+    if(gbi.btype != gkos_boot_interface::board_type::QEMU)
+        init_etnaviv();
 
     while(true)
     {
