@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <cstdint>
+#include <cstddef>
 #include <stm32mp2xx.h>
 #include "pins.h"
 
