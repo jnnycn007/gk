@@ -31,6 +31,7 @@ struct cm33_data_kernel
 {
     volatile uint32_t sr;
     volatile uint32_t cr;
+    volatile uint32_t fail[4];
 
     volatile cm33_joy_calib joy_a_calib, joy_b_calib, tilt_calib, throttle_calib;
 
@@ -40,7 +41,7 @@ struct cm33_data_kernel
     volatile uint32_t rb_paddr;
 };
 
-static_assert(sizeof(cm33_data_kernel) == 22*4);
+static_assert(sizeof(cm33_data_kernel) == 26*4);
 
 // status register
 #define CM33_DK_SR_READY            1
