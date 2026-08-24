@@ -59,6 +59,18 @@
 .section  .text.Default_Handler,"ax",%progbits
 .type Default_Handler, %function
 Default_Handler:
+    ldr     r0, =0x30060008
+    ldr     r1, =0xe000ed04         // icsr
+    ldr     r2, [r1]
+    str     r2, [r0]
+    ldr     r1, =0xe000ed2c         // hfsr
+    ldr     r2, [r1]
+    str     r2, [r0, 4]
+    mrs     r2, xpsr                // xpsr
+    str     r2, [r0, 8]
+    ldr     r1, =0xe000ed28         // cfsr
+    ldr     r2, [r1]
+    str     r2, [r0, 0xc]
     bl FailHandler
 .size  Default_Handler, .-Default_Handler
 
