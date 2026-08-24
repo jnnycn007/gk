@@ -30,6 +30,8 @@ static void dma_irqhandler(exception_regs *, uint64_t);
 
 using audio_conf = Process::audio_conf_t;
 
+extern gkos_boot_interface gbi;
+
 /* I2C comms with TAD5112 */
 static const constexpr unsigned int tad_addr = 0x50;
 static const constexpr unsigned int tad_i2c = 2;
@@ -341,7 +343,8 @@ int syscall_audiosetmodeex(int nchan, int nbits, int freq, size_t buf_size_bytes
 
     SAI2_Block_A_VMEM->CR1 = 0;
     dma->CCR |= DMA_CCR_SUSP;
-    while(!(dma->CSR & DMA_CSR_IDLEF));
+    if(gbi.btype != gkos_boot_interface::board_type::QEMU)
+        while(!(dma->CSR & DMA_CSR_IDLEF));
     dma->CCR = DMA_CCR_RESET;
     while(dma->CCR & DMA_CCR_RESET);
     dma->CCR = 0;
