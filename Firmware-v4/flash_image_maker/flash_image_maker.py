@@ -20,7 +20,7 @@ for ifile in args.input_files:
 
         if elffile['e_type'] == 'ET_EXEC':
             for segment in elffile.iter_segments():
-                if segment['p_type'] == 'PT_LOAD':
+                if segment['p_type'] == 'PT_LOAD' and segment['p_filesz'] > 0:
                     data = segment.data()
                     paddr = segment['p_paddr']
                     flash_offset = paddr - FLASH_BASE
@@ -35,7 +35,7 @@ for ifile in args.input_files:
                     
         if elffile['e_type'] == 'ET_REL':
             for section in elffile.iter_sections():
-                if section['sh_type'] == 'SHT_PROGBITS':
+                if section['sh_type'] == 'SHT_PROGBITS' and section['sh_size'] > 0:
                     data = section.data()
                     paddr = section['sh_addr']
 
@@ -52,5 +52,5 @@ for ifile in args.input_files:
 with open(args.output_file, "wb") as f:
     f.write(flash_buffer)
 
-# e.g. python3 .\flash_image_maker.py -o test.img ..\ssbl-a\build\gkv4_ssbl_a.elf ..\gkos\build\gkos.bin.elf ..\secure_monitor\build\gkos_sm.bin.elf
+# e.g. python3 .\flash_image_maker.py -o test.img ..\ssbl-a\build\gkv4_ssbl_a.elf ..\gkos\build\gkos.bin.elf ..\secure_monitor\build\gkos_sm.bin.elf ..\cm33-firmware\build\gkv4_cm33.elf
 # run with: /build/qemu-system-aarch64 -machine gk -kernel ~/jncro/source/repos/gk/Firmware-v4/fsbl-a/build/gkv4_fsbl_a.elf -m 1G -pflash ~/jncro/source/repos/gk/Firmware-v4/flash_image_maker/test.img  -sd ~/sd.qcow2 -monitor stdio
