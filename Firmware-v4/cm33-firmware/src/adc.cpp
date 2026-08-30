@@ -5,7 +5,7 @@
 
 #define dma HPDMA2_Channel12
 
-extern uint32_t adc_vals[4];
+extern uint32_t adc_vals[5];
 
 void init_adc()
 {
