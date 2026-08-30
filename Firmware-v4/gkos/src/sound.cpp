@@ -333,6 +333,11 @@ int syscall_audiosetmodeex(int nchan, int nbits, int freq, size_t buf_size_bytes
     int *_errno)
 {
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     auto &ac = p->audio;
     CriticalGuard cg(ac.sl_sound);
 
@@ -563,6 +568,11 @@ int syscall_audioenable(int enable, int *_errno)
 {
     klog("audioenable: %d\n", enable);
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     auto &ac = p->audio;
     if(!ac.mr_sound.valid)
     {
@@ -635,6 +645,11 @@ int syscall_audioenable(int enable, int *_errno)
 int syscall_audioqueuebuffer(const void *buffer, void **next_buffer, int *_errno)
 {
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     auto &ac = p->audio;
     if(!ac.mr_sound.valid)
     {
@@ -677,6 +692,11 @@ int syscall_audioqueuebuffer(const void *buffer, void **next_buffer, int *_errno
 int syscall_audiowaitfree(int *_errno)
 {
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     auto &ac = p->audio;
     if(!ac.mr_sound.valid)
     {
@@ -792,6 +812,11 @@ int syscall_audiogetbufferpos(size_t *nbufs, size_t *curbuf, size_t *buflen, siz
     int *nchan, int *nbits, int *freq, int *_errno)
 {
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     auto &ac = p->audio;
 
     if(!ac.mr_sound.valid)

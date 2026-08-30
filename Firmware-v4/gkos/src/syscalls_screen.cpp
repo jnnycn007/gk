@@ -586,6 +586,11 @@ void fill3(char *dest, uint32_t c, size_t len)
 int syscall_setbrightness(unsigned int bright, int *_errno)
 {
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     if(p->priv_set_brightness == false)
     {
         *_errno = EPERM;

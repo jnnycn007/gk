@@ -56,7 +56,13 @@ int syscall_get_arg_count(int *_errno)
 
 int syscall_get_iarg_size(unsigned int idx, int *_errno)
 {
-    auto &penv = GetCurrentProcessForCore()->env;
+    auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
+    auto &penv = p->env;
     CriticalGuard cg(penv.sl);
 
     if(idx >= penv.args.size() + 1)
@@ -67,7 +73,7 @@ int syscall_get_iarg_size(unsigned int idx, int *_errno)
 
     if(idx == 0)
     {
-        return GetCurrentProcessForCore()->name.size();
+        return p->name.size();
     }
 
     return penv.args[idx - 1].size();
@@ -77,7 +83,14 @@ int syscall_get_iarg(char *outbuf, size_t outbuf_len, unsigned int idx, int *_er
 {
     ADDR_CHECK_BUFFER_W(outbuf, 1);
 
-    auto &penv = GetCurrentProcessForCore()->env;
+    auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
+
+    auto &penv = p->env;
     CriticalGuard cg(penv.sl);
 
     if(idx >= penv.args.size() + 1)
@@ -86,7 +99,7 @@ int syscall_get_iarg(char *outbuf, size_t outbuf_len, unsigned int idx, int *_er
         return -1;
     }
 
-    const auto &v = (idx == 0) ? GetCurrentProcessForCore()->name :
+    const auto &v = (idx == 0) ? p->name :
         penv.args[idx - 1];
 
     if(v.size() > outbuf_len)

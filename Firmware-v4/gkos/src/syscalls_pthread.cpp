@@ -87,6 +87,11 @@ int syscall_pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t
 #endif
     
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     *mutex = p->owned_mutexes.add(m);
 
     return 0;
@@ -110,6 +115,8 @@ static PMutex check_mutex(pthread_mutex_t *mutex)
 #endif
     }
     auto p = GetCurrentProcessForCore();
+    if(!p)
+        return nullptr;
     return p->owned_mutexes.get(*mutex);
 }
 
@@ -122,6 +129,8 @@ static PCondition check_cond(pthread_cond_t *mutex)
         syscall_pthread_cond_init(mutex, nullptr, nullptr);
     }
     auto p = GetCurrentProcessForCore();
+    if(!p)
+        return nullptr;
     return p->owned_conditions.get(*mutex);
 }
 
@@ -134,6 +143,8 @@ static PRWLock check_rwlock(pthread_rwlock_t *lock)
         syscall_pthread_rwlock_init(lock, nullptr, nullptr);
     }
     auto p = GetCurrentProcessForCore();
+    if(!p)
+        return nullptr;
     return p->owned_rwlocks.get(*lock);
 }
 
@@ -142,6 +153,8 @@ static PBarrier check_barrier(id_t *barrier)
     if(!barrier)
         return nullptr;
     auto p = GetCurrentProcessForCore();
+    if(!p)
+        return nullptr;
     return p->owned_barriers.get(*barrier);
 }
 
@@ -150,6 +163,8 @@ static PUserspaceSemaphore check_sem(sem_t *sem)
     if(!sem || !sem->s)
         return nullptr;
     auto p = GetCurrentProcessForCore();
+    if(!p)
+        return nullptr;
     return p->owned_semaphores.get(sem->s);
 }
 
@@ -257,6 +272,11 @@ int syscall_pthread_rwlock_init(pthread_rwlock_t *lock, const pthread_rwlockattr
     }
 
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     *lock = p->owned_rwlocks.add(l);
 
     return 0;
@@ -378,6 +398,11 @@ int syscall_sem_init(sem_t *sem, int pshared, unsigned int value, int *_errno)
     }
 
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     sem->s = p->owned_semaphores.add(s);
 
     return 0;
@@ -401,6 +426,11 @@ int syscall_sem_destroy(sem_t *sem, int *_errno)
     }
 
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     p->owned_semaphores.erase(sem->s);
 
     return 0;
@@ -553,6 +583,11 @@ int syscall_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *at
     }
 
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     *cond = p->owned_conditions.add(c);
 
     return 0;
@@ -569,6 +604,11 @@ int syscall_pthread_cond_destroy(pthread_cond_t *cond, int *_errno)
     }
 
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     p->owned_conditions.erase(*cond);
 
     return 0;
@@ -659,6 +699,11 @@ int syscall_pthread_barrier_init(id_t *barrier, const void *attr, unsigned int c
     }
 
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     *barrier = p->owned_barriers.add(b);
 
     return 0;
@@ -688,6 +733,11 @@ int syscall_pthread_barrier_destroy(id_t *barrier, int *_errno)
     }
 
     auto p = GetCurrentProcessForCore();
+    if(!p)
+    {
+        *_errno = EINVAL;
+        return -1;
+    }
     p->owned_barriers.erase(*barrier);
 
     return 0;
