@@ -298,32 +298,22 @@ void init_screen()
     }
 
     /* Screen is 800x480
-        ER settings:
-        H visible 800
-            back  140
-            front 160
-            spw   20
-        V visible 480
-            back  20
-            front 12
-            spw   3
-        PCLK      falling
-        HSYNC     high
-        VSYNC     high
-        DE        high
-    
-        1120 x 515 -> 34.608 MHz @ 60 Hz
+        We set total size to 816 x 512, with findiv 48 -> ~60 Hz at 1200 MHz input
 
-        We want something easily divisble from 1200 MHz, so use:
-        1250 x 640 -> 48 MHz @ 60 Hz
-        So, e.g. H front 225, visible 800, back 200, spw 25
-                 V front 80, visible 480, back 75, spw 5
+        24 Hz = 481 MHz
+        90 Hz = 1805 MHz
 
-        Need /25 divider from 1200 MHz PLL5 off HSE (could use PLL8 otherwise)
+        VCO out is 800 - 3200 MHz
     */
+
+    // Run PLL8 off HSE40
+    RCC_VMEM->MUXSELCFGR = (RCC_VMEM->MUXSELCFGR & ~RCC_MUXSELCFGR_MUXSEL4_Msk) |
+        (1U << RCC_MUXSELCFGR_MUXSEL4_Pos);
+    
+    screen_set_refresh(60.0);
     RCC_VMEM->FINDIVxCFGR[27] = 0;
     RCC_VMEM->PREDIVxCFGR[27] = 0;
-    RCC_VMEM->XBARxCFGR[27] = 0x41;
+    RCC_VMEM->XBARxCFGR[27] = 0x44;
     RCC_VMEM->FINDIVxCFGR[27] = 0x40U | 47U;
 
     // LTDC clock from above
@@ -1052,6 +1042,106 @@ int screen_set_startup_img(const void *img, unsigned int w, unsigned int h,
     l->CFBAR = (uint32_t)(uintptr_t)vmem_vaddr_to_paddr_quick((uintptr_t)img);
     l->CR = LTDC_LxCR_LEN | cluten;
     LTDC_VMEM->SRCR = LTDC_SRCR_IMR;
+
+    return 0;
+}
+
+bool screen_pf_valid(int pf)
+{
+    if(pf < 0 || pf > GK_PIXELFORMAT_MAX)
+        return false;
+    return true;
+}
+
+bool screen_refresh_valid(int refresh)
+{
+    if(refresh >= 1000)
+        refresh /= 1000;
+    if(refresh < GK_MIN_SCREEN_REFRESH || refresh > GK_MAX_SCREEN_REFRESH)
+        return false;
+    return true;
+}
+
+bool screen_width_valid(int w)
+{
+    if(w < 160 || w > GK_MAX_SCREEN_WIDTH)
+        return false;
+    if(w & 0x3)
+        return false;
+    return true;
+}
+
+bool screen_height_valid(int h)
+{
+    if(h < 120 || h > GK_MAX_SCREEN_HEIGHT)
+        return false;
+    if(h & 0x3)
+        return false;
+    return true;
+}
+
+int screen_set_refresh(unsigned int rr)
+{
+    if(rr >= 1000)
+    {
+        double rr_d = (double)rr / 1000.0;
+        return screen_set_refresh(rr_d);
+    }
+    else
+    {
+        return screen_set_refresh((double)rr);
+    }
+}
+
+int screen_set_refresh(double rr)
+{
+    if(rr < (double)GK_MIN_SCREEN_REFRESH || rr > (double)GK_MAX_SCREEN_REFRESH)
+        return -1;
+    
+    /*
+        We set total size to 816 x 512, with findiv 48 -> ~60 Hz at 1200 MHz input
+
+        24 Hz = 481 MHz
+        90 Hz = 1805 MHz
+
+        VCO out is 800 - 3200 MHz
+
+        Use PLL8 which runs off HSE40 / 2 -> 20 MHz
+    */
+    
+    double output_freq = rr * 816.0 * 512.0 * 48.0;
+    int postdiv = (output_freq < 1200000000.0) ? 2 : 1;
+    double vco_output = output_freq * (double)postdiv;
+    const double vco_in = 20000000.0;
+    double vcomult = vco_output / vco_in;
+    int intpart = (int)(vcomult);
+    int fract_part = (int)((vcomult - (double)intpart) * 16777216.0);
+
+    double act_hz = vco_in * ((double)intpart + (double)fract_part / 16777216.0) / (double)postdiv / 48.0 / 816.0 / 512.0;
+
+    klog("screen: pll settings: frefdiv: 2, fbdiv: %d, frac: %d, postdiv1: 1, postdiv2: %d, prediv: 1, findiv: 48, target_hz: %s, actual_hz: %s\n",
+        intpart, fract_part, postdiv, std::to_string(rr).c_str(), std::to_string(act_hz).c_str());
+
+    // Now program the PLL8
+    RCC_VMEM->PLL8CFGR1 &= ~RCC_PLL8CFGR1_PLLEN;
+    __asm__ volatile("dmb sy\n" ::: "memory");
+
+    // run off HSE
+    RCC_VMEM->MUXSELCFGR = (RCC_VMEM->MUXSELCFGR & ~RCC_MUXSELCFGR_MUXSEL4_Msk) |
+        (1U << RCC_MUXSELCFGR_MUXSEL4_Pos);
+
+    RCC_VMEM->PLL8CFGR2 = (2U << RCC_PLL8CFGR2_FREFDIV_Pos) |
+        ((unsigned int)intpart << RCC_PLL8CFGR2_FBDIV_Pos);
+    RCC_VMEM->PLL8CFGR3 = (RCC_VMEM->PLL8CFGR3 & ~RCC_PLL8CFGR3_FRACIN_Msk) |
+        ((unsigned int)fract_part << RCC_PLL8CFGR3_FRACIN_Pos);
+    RCC_VMEM->PLL8CFGR4 = RCC_PLL8CFGR4_FOUTPOSTDIVEN |
+        (((fract_part == 0) ? 0U : 1U) << RCC_PLL8CFGR4_DSMEN_Pos);
+    RCC_VMEM->PLL8CFGR6 = (unsigned int)1 << RCC_PLL8CFGR6_POSTDIV1_Pos;
+    RCC_VMEM->PLL8CFGR7 = (unsigned int)postdiv << RCC_PLL8CFGR7_POSTDIV2_Pos;
+    __asm__ volatile("dmb sy\n" ::: "memory");
+    RCC_VMEM->PLL8CFGR1 |= RCC_PLL8CFGR1_PLLEN;
+
+    while(!(RCC_VMEM->PLL8CFGR1 & RCC_PLL8CFGR1_PLLRDY));
 
     return 0;
 }

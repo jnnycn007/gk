@@ -538,6 +538,9 @@ int SetFocusProcess(PProcess p)
     // restore palette if used
 
 
+    // update sceen refresh
+    screen_set_refresh(p->screen.screen_refresh);
+
     // update cpu freq
     if(p->cpu_freq != clock_get_cpu())
     {

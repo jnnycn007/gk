@@ -29,6 +29,14 @@ int screen_set_background_colour(uint32_t col);
 int screen_set_startup_img(const void *img, unsigned int w = 200, unsigned int h = 240,
     unsigned int pf = GK_PIXELFORMAT_RGB8);
 
+bool screen_pf_valid(int pf);
+bool screen_refresh_valid(int refresh);
+bool screen_width_valid(int w);
+bool screen_height_valid(int h);
+
+int screen_set_refresh(unsigned int rr);
+int screen_set_refresh(double rr);
+
 constexpr size_t scr_layer_size_bytes = align_power_2(GK_MAX_SCREEN_WIDTH * GK_MAX_SCREEN_HEIGHT * 4);
 constexpr unsigned int scr_n_layers = 2;
 constexpr unsigned int scr_n_bufs = 3;

@@ -18,38 +18,6 @@ int syscall_getscreenmodeex(int *width, int *height, int *pf, int *refresh, int 
     return 0;
 }
 
-static bool scr_width_valid(int w)
-{
-    if(w < 160 || w > GK_MAX_SCREEN_WIDTH)
-        return false;
-    if(w & 0x3)
-        return false;
-    return true;
-}
-
-static bool scr_height_valid(int h)
-{
-    if(h < 120 || h > GK_MAX_SCREEN_HEIGHT)
-        return false;
-    if(h & 0x3)
-        return false;
-    return true;
-}
-
-static bool scr_pf_valid(int pf)
-{
-    if(pf < 0 || pf > GK_PIXELFORMAT_MAX)
-        return false;
-    return true;
-}
-
-static bool scr_refresh_valid(int refresh)
-{
-    if(refresh < GK_MIN_SCREEN_REFRESH || refresh > GK_MAX_SCREEN_REFRESH)
-        return false;
-    return true;
-}
-
 int syscall_setscreenmode(int *width, int *height, int *pf, int *refresh, int *_errno)
 {
     auto p = GetCurrentProcessForCore();
@@ -63,7 +31,7 @@ int syscall_setscreenmode(int *width, int *height, int *pf, int *refresh, int *_
 
     if(width)
     {
-        if(!scr_width_valid(*width))
+        if(!screen_width_valid(*width))
         {
             *_errno = EINVAL;
             return -1;
@@ -72,7 +40,7 @@ int syscall_setscreenmode(int *width, int *height, int *pf, int *refresh, int *_
     }
     if(height)
     {
-        if(!scr_height_valid(*height))
+        if(!screen_height_valid(*height))
         {
             *_errno = EINVAL;
             return -1;
@@ -81,7 +49,7 @@ int syscall_setscreenmode(int *width, int *height, int *pf, int *refresh, int *_
     }
     if(pf)
     {
-        if(!scr_pf_valid(*pf))
+        if(!screen_pf_valid(*pf))
         {
             *_errno = EINVAL;
             return -1;
@@ -90,7 +58,7 @@ int syscall_setscreenmode(int *width, int *height, int *pf, int *refresh, int *_
     }
     if(refresh)
     {
-        if(!scr_refresh_valid(*refresh))
+        if(!screen_refresh_valid(*refresh))
         {
             *_errno = EINVAL;
             return -1;
@@ -101,6 +69,10 @@ int syscall_setscreenmode(int *width, int *height, int *pf, int *refresh, int *_
     p->screen.screen_w = new_width;
     p->screen.screen_h = new_height;
     p->screen.screen_pf = new_pf;
+    if(p->screen.screen_refresh != new_refresh && p == GetFocusProcess().get())
+    {
+        screen_set_refresh(new_refresh);
+    }
     p->screen.screen_refresh = new_refresh;
 
     klog("screen: set %ux%u, pf: %u, rr: %u\n", new_width, new_height, new_pf, new_refresh);

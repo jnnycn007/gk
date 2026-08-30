@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include "gk_conf.h"
 #include "supervisor.h"
+#include "screen.h"
 
 int syscall_proccreate(const char *fname, const proccreate_t *proc_info, pid_t *pid, int *_errno)
 {
@@ -97,12 +98,11 @@ int syscall_proccreate(const char *fname, const proccreate_t *proc_info, pid_t *
             proc->screen.cursor_alpha = 255;
         }
 
-        if(proc->screen.screen_refresh < GK_MIN_SCREEN_REFRESH
-            || proc->screen.screen_refresh > GK_MAX_SCREEN_REFRESH)
+        if(!screen_refresh_valid(proc->screen.screen_refresh))
         {
             proc->screen.screen_refresh = GK_SCREEN_REFRESH;
         }
-
+            
         if(proc->screen.screen_pf > GK_PIXELFORMAT_MAX)
             proc->screen.screen_pf = 0;
 

@@ -46,7 +46,7 @@
 #define GK_MAX_SCREEN_WIDTH         1024
 #define GK_MAX_SCREEN_HEIGHT        768
 #define GK_SCREEN_REFRESH           60
-#define GK_MAX_SCREEN_REFRESH       60
+#define GK_MAX_SCREEN_REFRESH       90
 #define GK_MIN_SCREEN_REFRESH       24
 #define GK_MAX_IRQS                 512
 #define GK_PROCESS_DATA_MAX         1024
