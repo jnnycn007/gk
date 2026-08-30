@@ -11,7 +11,7 @@
             "runToEntryPoint": "main",
             "showDevDebugOutput": "none",
             "servertype": "jlink",
-            "serverpath": "/program files/segger/jlink/JLinkGDBServerCL.exe",
+            "serverpath": "/program files/segger/jlink_v954/JLinkGDBServerCL.exe",
             "numberOfProcessors": 2,
             "targetProcessor": 0,
             "svdFile": "/program files/segger/ozone/config/cpu/cortex-a35_aarch64.svd",
@@ -38,7 +38,7 @@
             "runToEntryPoint": "main",
             "showDevDebugOutput": "none",
             "servertype": "jlink",
-            "serverpath": "/program files/segger/jlink/JLinkGDBServerCL.exe",
+            "serverpath": "/program files/segger/jlink_v954/JLinkGDBServerCL.exe",
             "numberOfProcessors": 2,
             "targetProcessor": 0,
             "svdFile": "/program files/segger/ozone/config/cpu/cortex-a35_aarch64.svd"
@@ -53,7 +53,7 @@
             "runToEntryPoint": "main",
             "showDevDebugOutput": "none",
             "servertype": "jlink",
-            "serverpath": "/program files/segger/jlink/JLinkGDBServerCL.exe",
+            "serverpath": "/program files/segger/jlink_v954/JLinkGDBServerCL.exe",
             "numberOfProcessors": 2,
             "targetProcessor": 0,
             "svdFile": "/program files/segger/ozone/config/cpu/cortex-a35_aarch64.svd"
