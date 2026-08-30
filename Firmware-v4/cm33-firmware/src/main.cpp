@@ -441,7 +441,7 @@ void send_message(uint32_t msg)
     dk.rb_w_ptr = new_w_ptr;
 }
 
-template <class T> void db_tick(T &db)
+template <class T> void db_tick(T &db, const char *dbg = nullptr)
 {
     auto ret = db.tick();
     auto v = db.get_val();
@@ -457,10 +457,12 @@ template <class T> void db_tick(T &db)
     {
         if(ret & pin_state::StableHigh)
         {
+            if(dbg) klog("Release: %s\n", dbg);
             send_message(CM33_DK_MSG_RELEASE| v);
         }
         else if(ret & pin_state::StableLow)
         {
+            if(dbg) klog("Press: %s\n", dbg);
             send_message(CM33_DK_MSG_PRESS | v);
         }
     }
@@ -468,10 +470,12 @@ template <class T> void db_tick(T &db)
     {
         if(ret & pin_state::LongPress)
         {
+            if(dbg) klog("LongPress: %s\n", dbg);
             send_message(CM33_DK_MSG_LONGPRESS | v);
         }
         if(ret & pin_state::Repeat)
         {
+            if(dbg) klog("Repeat: %s\n", dbg);
             send_message(CM33_DK_MSG_REPEAT | v);
         }
     }
